@@ -49,6 +49,7 @@ impl<T: Potential> Bounce<T> {
         let mut i = 0;
         while i < max_iter {
             self.phi_0 = (phi_0_range.start + phi_0_range.end) / 2.;
+            dbg!(i, self.phi_0 as f64);
             match self.shoot(drho, self.phi_0, tol) {
                 ShootingResult::OverShoot => {
                     phi_0_range.end = self.phi_0;
@@ -65,7 +66,7 @@ impl<T: Potential> Bounce<T> {
         }
     }
     pub fn shoot(&mut self, drho: f128, phi_ini: f128, tol: f128) -> ShootingResult {
-        let mut rho = drho;
+        let mut rho = drho * 10.;
         let mut y = arr1(&[phi_ini, 0.]);
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
             let phi = fld[0];
@@ -90,6 +91,7 @@ impl<T: Potential> Bounce<T> {
                 if (phi - self.v.phi_fv()).abs() < tol * (self.v.phi_top() - self.v.phi_fv()).abs()
                     && dphi.abs() < tol * dphi_max
                 {
+                    self.rho_max = rho;
                     break ShootingResult::Success;
                 }
                 if dphi > 0. {
@@ -100,7 +102,6 @@ impl<T: Potential> Bounce<T> {
                 }
             }
         };
-        self.rho_max = rho;
         res
     }
 }

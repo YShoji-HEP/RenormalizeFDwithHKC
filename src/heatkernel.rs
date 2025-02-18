@@ -97,6 +97,16 @@ impl<T: Potential> Bounce<T> {
             }
         }
         if debug {
+            dbgbb::dbgbb!(res_rho
+                .iter()
+                .map(|&x| x as f64)
+                .collect::<Vec<_>>()
+                .rename("rho"));
+            dbgbb::dbgbb!(res_phi
+                .iter()
+                .map(|&x| x as f64)
+                .collect::<Vec<_>>()
+                .rename("phi"));
             dbgbb::dbgbb!(res_dhkc1
                 .iter()
                 .map(|&x| x as f64)

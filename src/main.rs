@@ -51,7 +51,8 @@ fn main() {
     let v = PhiFour::new(0.2);
     let mut bnc = Bounce::new(v, 4.);
     let drho = 1e-4;
-    bnc.find_profile(drho, 0.00001, 50);
+    bnc.find_profile(drho, 1e-7, 60);
+    bnc.rho_max = bnc.rho_max * 0.9;
     let i_nu = |nu: f128, rho: f128| {
         [
             rho / 2. / nu,
@@ -62,18 +63,18 @@ fn main() {
             rho.powi(9) * 105. / 32. / nu.powi(9),
         ]
     };
-    // for i in 0..30 {
-    //     dbgbb::dbgbb!(bnc
-    //         .ratio(i as f128, drho, false)
-    //         .map(|x| x as f64)
-    //         .rename("ratio"));
-    //     dbgbb::dbgbb!(bnc
-    //         .hk(i as f128, drho, &i_nu, false)
-    //         .map(|x| x as f64)
-    //         .rename("hkc"));
-    // }
-    bnc.hk(20., drho, &i_nu, true);
-    // bnc.ratio(19., drho);
+    for i in 0..30 {
+        dbgbb::dbgbb!(bnc
+            .ratio(i as f128, drho, false)
+            .map(|x| x as f64)
+            .rename("ratio"));
+        dbgbb::dbgbb!(bnc
+            .hk(i as f128, drho, &i_nu, false)
+            .map(|x| x as f64)
+            .rename("hkc"));
+    }
+    // bnc.hk(20., drho, &i_nu, true);
+    // bnc.ratio(20., drho, false);
     // dbgbb::dbgbb!(
     //     bnc.rho.map(|&x| x as f64).rename("rho"),
     //     bnc.phi.map(|&x| x as f64).rename("phi"),
