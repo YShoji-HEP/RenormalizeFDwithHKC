@@ -74,9 +74,9 @@ checksum = "43da5946c66ffcc7745f48db692ffbb10a83bfe0afd96235c5c2a4fb23994929"
 
 [[package]]
 name = "dbgbb"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f52363de790f2a4d0c133bba501700730aeb04f39d1d4429e461f43e49538dac"
+checksum = "0ba89a64ab5d26719c769eb9580ec4a7cbdb8d5a4b3d49d9ac9c4699a25b20a4"
 dependencies = [
  "array-object",
  "bulletin-board-common",

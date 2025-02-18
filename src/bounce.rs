@@ -76,7 +76,7 @@ impl<T: Potential> Bounce<T> {
         };
         let mut dphi_max = -1.0_f128 / 0.0_f128;
         let res = loop {
-            let (dy, err) = stepper::dp45(rho, &y, drho, &dydrho);
+            let (dy, _) = stepper::dp45(rho, &y, drho, &dydrho);
 
             y += &dy;
             rho += drho;

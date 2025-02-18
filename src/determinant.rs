@@ -9,7 +9,7 @@ const ABS_TOL: f128 = 1e-5;
 const REL_TOL: f128 = 1e-5;
 
 impl<T: Potential> Bounce<T> {
-    pub fn ratio(&mut self, nu: f128, drho: f128) {
+    pub fn ratio(&mut self, nu: f128, drho: f128) -> [f128; 3] {
         let mut rho = drho;
         let mut y = arr1(&[self.phi_0, 0., 1., 0., 1., 0., 0., 0., 0., 0.]);
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
@@ -92,5 +92,6 @@ impl<T: Potential> Bounce<T> {
         self.psi1_nu = res_psi1_nu.into();
         self.psi2_nu = res_psi2_nu.into();
         self.err = res_err.into();
+        [y[2] / y[4], y[6] / y[4], y[8] / y[4]]
     }
 }

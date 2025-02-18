@@ -45,7 +45,10 @@ fn main() {
     let mut bnc = Bounce::new(v, 4.);
     let drho = 1e-4;
     bnc.find_profile(drho, 30);
-    bnc.ratio(20., drho);
+    // for i in 0..30 {
+    //     dbgbb::dbgbb!(bnc.ratio(i as f128, drho).map(|x| x as f64).rename("ratio"));
+    // }
+    bnc.ratio(15., drho);
     dbgbb::dbgbb!(
         bnc.rho.map(|&x| x as f64).rename("rho"),
         bnc.phi.map(|&x| x as f64).rename("phi"),
