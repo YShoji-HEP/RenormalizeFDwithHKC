@@ -34,8 +34,10 @@ impl Potential for PhiFour {
         self.k
     }
 }
+
 fn main() {
     let v = PhiFour::new(0.2);
     let mut bnc = Bounce::new(v, 4.);
-    bnc.find_profile(20);
+    bnc.find_profile(1e-4, 30);
+    dbgbb::dbgbb!(bnc.rho, bnc.phi, bnc.err);
 }
