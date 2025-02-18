@@ -70,8 +70,8 @@ impl<T: Potential> Bounce<T> {
                     + 13. / 6. * ddm2 * dm2.powi(2)
                     + 5. / 4.
                         * m2
-                        * (ddm2.powi(2) + (self.dim - 1.) * dm2.powi(2) / rho_ode.powi(2))
-                    + 1. / 8. * dm2.powi(2) * (ddm2 + (self.dim - 1.) * dm2 / rho_ode)
+                        * (ddm2.powi(2) + (self.dim - 1.) / rho_ode.powi(2) * dm2.powi(2))
+                    + 1. / 8. * dm2.powi(2) * (ddm2 + (self.dim - 1.) / rho_ode * dm2)
                     + 1. / 4.
                         * m2
                         * dm2
@@ -86,8 +86,8 @@ impl<T: Potential> Bounce<T> {
                             + (self.dim - 1.) / rho_ode * d3m2 * ddm2
                             + (self.dim - 1.) / rho_ode.powi(2) * dm2 * d3m2
                             - 2. * (self.dim - 1.) / rho_ode.powi(2) * ddm2.powi(2)
-                            + (self.dim.powi(2) - 1.) / rho_ode.powi(3) * ddm2 * dm2)
-                    - (self.dim - 1.).powi(2) / rho_ode.powi(4) * dm2.powi(2)
+                            + (self.dim.powi(2) - 1.) / rho_ode.powi(3) * ddm2 * dm2
+                            - (self.dim - 1.).powi(2) / rho_ode.powi(4) * dm2.powi(2))
                     + 1. / 112.
                         * (d3m2 + (self.dim - 1.) / rho_ode * ddm2
                             - (self.dim - 1.) / rho_ode.powi(2) * dm2)
@@ -98,8 +98,9 @@ impl<T: Potential> Bounce<T> {
                             + (self.dim - 1.) * (self.dim - 5.) / rho_ode.powi(2) * dm2 * d3m2
                             - 3. * (self.dim - 1.) * (self.dim - 3.) / rho_ode.powi(3)
                                 * dm2
-                                * ddm2)
-                    + 3. * (self.dim - 1.) * (self.dim - 3.) / rho_ode.powi(4) * dm2.powi(2))
+                                * ddm2
+                            + 3. * (self.dim - 1.) * (self.dim - 3.) / rho_ode.powi(4)
+                                * dm2.powi(2)))
                 * int_nu[4];
 
             arr1(&[dphi, ddphi, dhkc1, dhkc2, dhkc3, dhkc4, dhkc5])
