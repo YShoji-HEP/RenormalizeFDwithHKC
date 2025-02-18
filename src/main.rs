@@ -72,6 +72,7 @@ fn main() {
             .hk(i as f128, drho, &i_nu, false)
             .map(|x| x as f64)
             .rename("hkc"));
+        dbg!(i);
     }
     // bnc.hk(20., drho, &i_nu, true);
     // bnc.ratio(20., drho, false);

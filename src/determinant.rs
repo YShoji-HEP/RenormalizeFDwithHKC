@@ -9,9 +9,9 @@ const ABS_TOL: f128 = 1e-5;
 const REL_TOL: f128 = 1e-5;
 
 impl<T: Potential> Bounce<T> {
-    pub fn ratio(&mut self, nu: f128, drho: f128, debug: bool) -> [f128; 3] {
+    pub fn ratio(&mut self, nu: f128, drho: f128, debug: bool) -> [f128; 4] {
         let mut rho = drho * 10.;
-        let mut y = arr1(&[self.phi_0, 0., 1., 0., 1., 0., 0., 0., 0., 0.]);
+        let mut y = arr1(&[self.phi_0, 0., 1., 0., 1., 0., 0., 0., 0., 0., 0., 0.]);
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
             let phi = fld[0];
             let dphi = fld[1];
@@ -23,6 +23,8 @@ impl<T: Potential> Bounce<T> {
             let dpsi1_nu = fld[7];
             let psi2_nu = fld[8];
             let dpsi2_nu = fld[9];
+            let psi3_nu = fld[10];
+            let dpsi3_nu = fld[11];
 
             let ddphi = self.v.first_deriv(phi) - (self.dim - 1.) / rho_ode * dphi;
 
@@ -35,9 +37,12 @@ impl<T: Potential> Bounce<T> {
             let ddpsi2_nu = -(1. + 2. * nu) / rho_ode * dpsi2_nu
                 + self.v.second_deriv_fv() * psi2_nu
                 + (self.v.second_deriv(phi) - self.v.second_deriv_fv()) * psi1_nu;
+            let ddpsi3_nu = -(1. + 2. * nu) / rho_ode * dpsi3_nu
+                + self.v.second_deriv_fv() * psi3_nu
+                + (self.v.second_deriv(phi) - self.v.second_deriv_fv()) * psi2_nu;
             arr1(&[
                 dphi, ddphi, dpsi_nu, ddpsi_nu, dpsi0_nu, ddpsi0_nu, dpsi1_nu, ddpsi1_nu, dpsi2_nu,
-                ddpsi2_nu,
+                ddpsi2_nu, dpsi3_nu, ddpsi3_nu,
             ])
         };
         let mut res_rho = vec![rho];
@@ -47,6 +52,7 @@ impl<T: Potential> Bounce<T> {
         let mut res_psi0_nu = vec![y[4]];
         let mut res_psi1_nu = vec![y[6]];
         let mut res_psi2_nu = vec![y[8]];
+        let mut res_psi3_nu = vec![y[10]];
         let mut res_err = vec![0.];
 
         loop {
@@ -70,11 +76,12 @@ impl<T: Potential> Bounce<T> {
                 res_psi0_nu.push(y[4]);
                 res_psi1_nu.push(y[6]);
                 res_psi2_nu.push(y[8]);
+                res_psi3_nu.push(y[10]);
 
                 res_err.push(err);
             }
         }
         if debug {}
-        [y[2] / y[4], y[6] / y[4], y[8] / y[4]]
+        [y[2] / y[4], y[6] / y[4], y[8] / y[4], y[10] / y[4]]
     }
 }
