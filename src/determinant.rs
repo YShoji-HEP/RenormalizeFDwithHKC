@@ -9,7 +9,7 @@ const ABS_TOL: f128 = 1e-5;
 const REL_TOL: f128 = 1e-5;
 
 impl<T: Potential> Bounce<T> {
-    pub fn ratio(&mut self, nu: f128, drho: f128) -> [f128; 3] {
+    pub fn ratio(&mut self, nu: f128, drho: f128, debug: bool) -> [f128; 3] {
         let mut rho = drho * 10.;
         let mut y = arr1(&[self.phi_0, 0., 1., 0., 1., 0., 0., 0., 0., 0.]);
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
@@ -24,7 +24,7 @@ impl<T: Potential> Bounce<T> {
             let psi2_nu = fld[8];
             let dpsi2_nu = fld[9];
 
-            let ddphi = self.eom(rho_ode, phi, dphi);
+            let ddphi = self.v.first_deriv(phi) - (self.dim - 1.) / rho_ode * dphi;
 
             let ddpsi_nu = -(1. + 2. * nu) / rho_ode * dpsi_nu + self.v.second_deriv(phi) * psi_nu;
             let ddpsi0_nu =
@@ -48,50 +48,33 @@ impl<T: Potential> Bounce<T> {
         let mut res_psi1_nu = vec![y[6]];
         let mut res_psi2_nu = vec![y[8]];
         let mut res_err = vec![0.];
-        let mut dphi_max = -1.0_f128 / 0.0_f128;
+
         loop {
             let (dy, err) = stepper::dp45(rho, &y, drho, &dydrho);
-
-            let err = *(err.map(|x| x.abs()) / (y.map(|x| x.abs()).mul(REL_TOL).add(ABS_TOL)))
-                .max()
-                .unwrap();
             y += &dy;
             rho += drho;
 
-            let phi = y[0];
-            let dphi = y[1];
-
-            res_rho.push(rho);
-            res_phi.push(y[0]);
-            res_dphi.push(y[1]);
-
-            res_psi_nu.push(y[2]);
-            res_psi0_nu.push(y[4]);
-            res_psi1_nu.push(y[6]);
-            res_psi2_nu.push(y[8]);
-
-            res_err.push(err);
-
-            if dphi_max < dphi.abs() {
-                dphi_max = dphi.abs();
+            if rho > self.rho_max {
+                break;
             }
-            if (phi - self.v.phi_fv()).abs() < (self.v.phi_top() - self.v.phi_fv()).abs() {
-                if (phi - self.v.phi_fv()).abs()
-                    < 0.0001 * (self.v.phi_top() - self.v.phi_fv()).abs()
-                    && dphi.abs() < 0.0001 * dphi_max
-                {
-                    break;
-                }
+
+            if debug {
+                let err = *(err.map(|x| x.abs()) / (y.map(|x| x.abs()).mul(REL_TOL).add(ABS_TOL)))
+                    .max()
+                    .unwrap();
+                res_rho.push(rho);
+                res_phi.push(y[0]);
+                res_dphi.push(y[1]);
+
+                res_psi_nu.push(y[2]);
+                res_psi0_nu.push(y[4]);
+                res_psi1_nu.push(y[6]);
+                res_psi2_nu.push(y[8]);
+
+                res_err.push(err);
             }
         }
-        self.rho = res_rho.into();
-        self.phi = res_phi.into();
-        self.phi_deriv = res_dphi.into();
-        self.psi_nu = res_psi_nu.into();
-        self.psi0_nu = res_psi0_nu.into();
-        self.psi1_nu = res_psi1_nu.into();
-        self.psi2_nu = res_psi2_nu.into();
-        self.err = res_err.into();
+        if debug {}
         [y[2] / y[4], y[6] / y[4], y[8] / y[4]]
     }
 }
