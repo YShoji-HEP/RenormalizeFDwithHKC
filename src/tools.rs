@@ -1,4 +1,3 @@
-use ndarray::{s, Array1, Dimension};
 
 #[cfg(test)]
 mod tests {

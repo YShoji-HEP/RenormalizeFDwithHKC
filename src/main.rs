@@ -1,5 +1,6 @@
 #![feature(f128)]
 mod bounce;
+mod determinant;
 mod potential;
 mod tools;
 
@@ -16,9 +17,9 @@ impl PhiFour {
     }
 }
 impl Potential for PhiFour {
-    fn val(&self, phi: f128) -> f128 {
-        1. / 4. * phi.powi(4) - (self.k + 1.) / 3. * phi.powi(3) + self.k / 2. * phi.powi(2)
-    }
+    // fn val(&self, phi: f128) -> f128 {
+    //     1. / 4. * phi.powi(4) - (self.k + 1.) / 3. * phi.powi(3) + self.k / 2. * phi.powi(2)
+    // }
     fn first_deriv(&self, phi: f128) -> f128 {
         phi.powi(3) - (self.k + 1.) * phi.powi(2) + self.k * phi
     }
@@ -34,15 +35,31 @@ impl Potential for PhiFour {
     fn phi_top(&self) -> f128 {
         self.k
     }
+    fn second_deriv_fv(&self) -> f128 {
+        self.k
+    }
 }
 
 fn main() {
     let v = PhiFour::new(0.2);
     let mut bnc = Bounce::new(v, 4.);
-    bnc.find_profile(1e-4, 30);
+    let drho = 1e-4;
+    bnc.find_profile(drho, 30);
+    bnc.ratio(20., drho);
     dbgbb::dbgbb!(
-        bnc.rho.map(|&x| x as f64),
-        bnc.phi.map(|&x| x as f64),
-        bnc.err.map(|&x| x as f64)
+        bnc.rho.map(|&x| x as f64).rename("rho"),
+        bnc.phi.map(|&x| x as f64).rename("phi"),
+        (&bnc.psi_nu / &bnc.psi0_nu)
+            .map(|&x| x as f64)
+            .rename("psi"),
+        bnc.phi.map(|&x| x as f64).rename("phi"),
+        (&bnc.psi1_nu / &bnc.psi0_nu)
+            .map(|&x| x as f64)
+            .rename("psi1"),
+        bnc.phi.map(|&x| x as f64).rename("phi"),
+        (&bnc.psi2_nu / &bnc.psi0_nu)
+            .map(|&x| x as f64)
+            .rename("psi2"),
+        bnc.err.map(|&x| x as f64).rename("err")
     );
 }

@@ -1,11 +1,6 @@
 use crate::potential::*;
-use crate::tools::f128tools::*;
 use crate::tools::*;
 use ndarray::{arr1, Array1};
-use ndarray_stats::QuantileExt;
-
-const ABS_TOL: f128 = 1e-5;
-const REL_TOL: f128 = 1e-5;
 
 #[derive(Debug, PartialEq)]
 pub enum ShootingResult {
@@ -17,10 +12,14 @@ pub enum ShootingResult {
 pub struct Bounce<T: Potential> {
     pub v: T,
     pub dim: f128,
-    pub rho: Array1<f128>,
     pub phi_0: f128,
+    pub rho: Array1<f128>,
     pub phi: Array1<f128>,
     pub phi_deriv: Array1<f128>,
+    pub psi_nu: Array1<f128>,
+    pub psi0_nu: Array1<f128>,
+    pub psi1_nu: Array1<f128>,
+    pub psi2_nu: Array1<f128>,
     pub err: Array1<f128>,
 }
 
@@ -33,6 +32,10 @@ impl<T: Potential> Bounce<T> {
             phi_0: Default::default(),
             phi: Default::default(),
             phi_deriv: Default::default(),
+            psi_nu: Default::default(),
+            psi0_nu: Default::default(),
+            psi1_nu: Default::default(),
+            psi2_nu: Default::default(),
             err: Default::default(),
         }
     }
@@ -44,7 +47,7 @@ impl<T: Potential> Bounce<T> {
         let mut i = 0;
         while i < max_iter {
             self.phi_0 = (phi_0_range.start + phi_0_range.end) / 2.;
-            match self.shoot(drho, self.phi_0, false) {
+            match self.shoot(drho, self.phi_0) {
                 ShootingResult::OverShoot => {
                     phi_0_range.end = self.phi_0;
                     i += 1;
@@ -58,12 +61,11 @@ impl<T: Potential> Bounce<T> {
                 }
             }
         }
-        self.shoot(drho, self.phi_0, true);
     }
-    fn eom(&self, rho: f128, phi: f128, dphi: f128) -> f128 {
+    pub fn eom(&self, rho: f128, phi: f128, dphi: f128) -> f128 {
         self.v.first_deriv(phi) - (self.dim - 1.) / rho * dphi
     }
-    pub fn shoot(&mut self, drho: f128, phi_ini: f128, save: bool) -> ShootingResult {
+    pub fn shoot(&mut self, drho: f128, phi_ini: f128) -> ShootingResult {
         let mut rho = drho;
         let mut y = arr1(&[phi_ini, 0.]);
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
@@ -72,29 +74,15 @@ impl<T: Potential> Bounce<T> {
             let ddphi = self.eom(rho_ode, phi, dphi);
             arr1(&[dphi, ddphi])
         };
-        let mut res_rho = vec![rho];
-        let mut res_phi = vec![y[0]];
-        let mut res_dphi = vec![y[1]];
-        let mut res_err = vec![0.];
         let mut dphi_max = -1.0_f128 / 0.0_f128;
         let res = loop {
             let (dy, err) = stepper::dp45(rho, &y, drho, &dydrho);
 
-            let err = *(err.map(|x| x.abs()) / (y.map(|x| x.abs()).mul(REL_TOL).add(ABS_TOL)))
-                .max()
-                .unwrap();
             y += &dy;
             rho += drho;
 
             let phi = y[0];
             let dphi = y[1];
-
-            if save {
-                res_rho.push(rho);
-                res_phi.push(phi);
-                res_dphi.push(dphi);
-                res_err.push(err);
-            }
 
             if dphi_max < dphi.abs() {
                 dphi_max = dphi.abs();
@@ -114,12 +102,6 @@ impl<T: Potential> Bounce<T> {
                 }
             }
         };
-        if save {
-            self.rho = res_rho.into();
-            self.phi = res_phi.into();
-            self.phi_deriv = res_dphi.into();
-            self.err = res_err.into();
-        }
         res
     }
 }
