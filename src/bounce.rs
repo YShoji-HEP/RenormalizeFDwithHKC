@@ -16,6 +16,7 @@ pub enum ShootingResult {
 
 pub struct Bounce<T: Potential> {
     pub v: T,
+    pub dim: f64,
     pub rho: Array1<f64>,
     pub phi_0: f64,
     pub phi: Array1<f64>,
@@ -23,9 +24,10 @@ pub struct Bounce<T: Potential> {
 }
 
 impl<T: Potential> Bounce<T> {
-    pub fn new(v: T) -> Self {
+    pub fn new(v: T, dim: f64) -> Self {
         Self {
             v,
+            dim,
             rho: Default::default(),
             phi_0: Default::default(),
             phi: Default::default(),
@@ -59,17 +61,17 @@ impl<T: Potential> Bounce<T> {
         }
         self.shoot(self.phi_0, true);
     }
-    fn eom(&self, phi: f64, dphi: f64) -> f64 {
-        1.
+    fn eom(&self, rho: f64, phi: f64, dphi: f64) -> f64 {
+        self.v.first_deriv(phi) - (self.dim - 1.) / rho * dphi
     }
     pub fn shoot(&mut self, phi_ini: f64, save: bool) -> ShootingResult {
         let mut drho = 1e-5;
         let mut rho = drho;
         let mut y = arr1(&[phi_ini, 0., rho, 1.]);
-        let dydrho = |_: f64, fld: &Array1<f64>| {
+        let dydrho = |rho_ode: f64, fld: &Array1<f64>| {
             let phi = fld[0];
             let dphi = fld[1];
-            let ddphi = self.eom(phi, dphi);
+            let ddphi = self.eom(rho_ode, phi, dphi);
             arr1(&[dphi, ddphi])
         };
         let mut res_rho = vec![rho];

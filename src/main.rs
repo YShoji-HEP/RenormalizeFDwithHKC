@@ -15,13 +15,13 @@ impl PhiFour {
     }
 }
 impl Potential for PhiFour {
-    fn val(&self, phi: &f64) -> f64 {
+    fn val(&self, phi: f64) -> f64 {
         1. / 4. * phi.powi(4) - (self.k + 1.) / 3. * phi.powi(3) + self.k / 2. * phi.powi(2)
     }
-    fn first_deriv(&self, phi: &f64) -> f64 {
+    fn first_deriv(&self, phi: f64) -> f64 {
         phi.powi(3) - (self.k + 1.) * phi.powi(2) + self.k * phi
     }
-    fn second_deriv(&self, phi: &f64) -> f64 {
+    fn second_deriv(&self, phi: f64) -> f64 {
         3. * phi.powi(2) - 2. * (self.k + 1.) * phi + self.k
     }
     fn phi_fv(&self) -> f64 {
@@ -36,5 +36,6 @@ impl Potential for PhiFour {
 }
 fn main() {
     let v = PhiFour::new(0.2);
-    let bnc = Bounce::new(v);
+    let mut bnc = Bounce::new(v, 4.);
+    bnc.find_profile(20);
 }
