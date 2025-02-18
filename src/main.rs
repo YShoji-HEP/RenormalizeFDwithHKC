@@ -45,24 +45,25 @@ fn main() {
     let mut bnc = Bounce::new(v, 4.);
     let drho = 1e-4;
     bnc.find_profile(drho, 30);
-    // for i in 0..30 {
-    //     dbgbb::dbgbb!(bnc.ratio(i as f128, drho).map(|x| x as f64).rename("ratio"));
-    // }
-    bnc.ratio(15., drho);
-    dbgbb::dbgbb!(
-        bnc.rho.map(|&x| x as f64).rename("rho"),
-        bnc.phi.map(|&x| x as f64).rename("phi"),
-        (&bnc.psi_nu / &bnc.psi0_nu)
-            .map(|&x| x as f64)
-            .rename("psi"),
-        bnc.phi.map(|&x| x as f64).rename("phi"),
-        (&bnc.psi1_nu / &bnc.psi0_nu)
-            .map(|&x| x as f64)
-            .rename("psi1"),
-        bnc.phi.map(|&x| x as f64).rename("phi"),
-        (&bnc.psi2_nu / &bnc.psi0_nu)
-            .map(|&x| x as f64)
-            .rename("psi2"),
-        bnc.err.map(|&x| x as f64).rename("err")
-    );
+    for i in 0..30 {
+        dbgbb::dbgbb!(bnc.ratio(i as f128, drho).map(|x| x as f64).rename("ratio"));
+    }
+    // bnc.ratio(19., drho);
+    // dbgbb::dbgbb!(
+    //     bnc.rho.map(|&x| x as f64).rename("rho"),
+    //     bnc.phi.map(|&x| x as f64).rename("phi"),
+    //     bnc.psi0_nu.map(|&x| x as f64).rename("psi0"),
+    //     (&bnc.psi_nu / &bnc.psi0_nu)
+    //         .map(|&x| x as f64)
+    //         .rename("psi"),
+    //     bnc.phi.map(|&x| x as f64).rename("phi"),
+    //     (&bnc.psi1_nu / &bnc.psi0_nu)
+    //         .map(|&x| x as f64)
+    //         .rename("psi1"),
+    //     bnc.phi.map(|&x| x as f64).rename("phi"),
+    //     (&bnc.psi2_nu / &bnc.psi0_nu)
+    //         .map(|&x| x as f64)
+    //         .rename("psi2"),
+    //     bnc.err.map(|&x| x as f64).rename("err")
+    // );
 }
