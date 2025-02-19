@@ -63,7 +63,20 @@ impl BesselIK {
                 }
                 coefs.push(new_coef);
             }
+            let mut temp = 0.;
+            for m in 0..2 * k + 1 {
+                let u_1 = coefs[m]
+                    .iter()
+                    .map(|(&n, c)| c * z.powi(n))
+                    .fold(0., |acc, x| acc + x);
+                let u_2 = coefs[2 * k - m]
+                    .iter()
+                    .map(|(&n, c)| c * z.powi(n))
+                    .fold(0., |acc, x| acc + x);
+                temp += (-1f128).powi(m as i32) * u_1 * u_2;
+            }
+            res += temp / (self.nu as f128).powi(2 * k as i32);
         }
-        0.
+        res * p / 2. / self.nu as f128
     }
 }
