@@ -4,6 +4,7 @@ mod determinant;
 mod heatkernel;
 mod potential;
 mod tools;
+mod bessel;
 
 use bounce::Bounce;
 use ndarray::arr1;
