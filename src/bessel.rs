@@ -2,11 +2,17 @@ use std::collections::HashMap;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dbgbb::dbgbb;
+    use ndarray::Array1;
     #[test]
     fn compare() {
-        let ik = BesselIK::new(12);
-        dbg!(ik.low_z(12., 30) as f64);
-        dbg!(ik.high_z(12., 25) as f64);
+        let ik = BesselIK::new(20);
+        let z: Array1<f128> = (0..100).map(|i| i as f128 / 100. * 50.).collect();
+        // let lz = z.map(|&x| ik.low_z(x, 100) as f64);
+        // let hz = z.map(|&x| ik.high_z(x, 30) as f64);
+        let res = z.map(|&x| ik.val(x) as f64);
+        let z = z.map(|&x| x as f64);
+        dbgbb!(z, res);
     }
 }
 
@@ -25,6 +31,13 @@ impl BesselIK {
         Self {
             nu,
             sum_harmonic_init,
+        }
+    }
+    fn val(&self, z: f128) -> f128 {
+        if z < 20. {
+            self.low_z(z, 110)
+        } else {
+            self.high_z(z, 35)
         }
     }
     fn low_z(&self, z: f128, n: usize) -> f128 {
