@@ -9,8 +9,8 @@ const ABS_TOL: f128 = 1e-5;
 const REL_TOL: f128 = 1e-5;
 
 impl<T: Potential> Bounce<T> {
-    pub fn ratio(&mut self, nu: f128, drho: f128, debug: bool) -> [f128; 4] {
-        let mut rho = drho * 10.;
+    pub fn ratio(&mut self, nu: f128, rho_ini: f128, step: f128, debug: bool) -> Array1<f128> {
+        let mut rho = rho_ini;
         let mut y = arr1(&[self.phi_0, 0., 1., 0., 1., 0., 0., 0., 0., 0., 0., 0.]);
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
             let phi = fld[0];
@@ -56,6 +56,7 @@ impl<T: Potential> Bounce<T> {
         let mut res_err = vec![0.];
 
         loop {
+            let drho = step / (1. / rho + (y[1] / self.phi_0).abs()).sqrt();
             let (dy, err) = stepper::dp45(rho, &y, drho, &dydrho);
             y += &dy;
             rho += drho;
@@ -81,7 +82,23 @@ impl<T: Potential> Bounce<T> {
                 res_err.push(err);
             }
         }
-        if debug {}
-        [y[2] / y[4], y[6] / y[4], y[8] / y[4], y[10] / y[4]]
+        if debug {
+            dbgbb::dbgbb!(res_rho
+                .iter()
+                .map(|&x| x as f64)
+                .collect::<Vec<_>>()
+                .rename("rho"));
+            dbgbb::dbgbb!(res_phi
+                .iter()
+                .map(|&x| x as f64)
+                .collect::<Vec<_>>()
+                .rename("phi"));
+            dbgbb::dbgbb!(res_err
+                .iter()
+                .map(|&x| x as f64)
+                .collect::<Vec<_>>()
+                .rename("err"));
+        }
+        arr1(&[y[2] / y[4], y[6] / y[4], y[8] / y[4], y[10] / y[4]])
     }
 }

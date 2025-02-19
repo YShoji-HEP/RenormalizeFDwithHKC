@@ -6,6 +6,7 @@ mod potential;
 mod tools;
 
 use bounce::Bounce;
+use ndarray::arr1;
 use potential::Potential;
 
 struct PhiFour {
@@ -50,47 +51,38 @@ impl Potential for PhiFour {
 fn main() {
     let v = PhiFour::new(0.2);
     let mut bnc = Bounce::new(v, 4.);
-    let drho = 1e-4;
-    bnc.find_profile(drho, 1e-7, 60);
+    let rho_ini = 1e-4;
+    let step = 3e-4;
+    bnc.find_profile(1e-10, 80, rho_ini, step);
     bnc.rho_max = bnc.rho_max * 0.9;
-    let i_nu = |nu: f128, rho: f128| {
-        [
-            rho / 2. / nu,
-            rho.powi(3) / 4. / nu.powi(3)
-                * (1. + 1. / nu.powi(2) + 1. / nu.powi(4) + 1. / nu.powi(6)),
-            rho.powi(5) * 3. / 8. / nu.powi(5) * (1. + 5. / nu.powi(2) + 21. / nu.powi(4)),
-            rho.powi(7) * 15. / 16. / nu.powi(7) * (1. + 14. / nu.powi(2)),
-            rho.powi(9) * 105. / 32. / nu.powi(9),
-        ]
+    let lam = |_: f128, rho: f128| [rho, rho.powi(3), rho.powi(5), rho.powi(7), rho.powi(9)];
+    let xi_approx = |nu: f128| {
+        arr1(&[
+            1. / 2. / nu,
+            1. / 4. / nu.powi(3) * (1. + 1. / nu.powi(2) + 1. / nu.powi(4) + 1. / nu.powi(6)),
+            3. / 8. / nu.powi(5) * (1. + 5. / nu.powi(2) + 21. / nu.powi(4)),
+            15. / 16. / nu.powi(7) * (1. + 14. / nu.powi(2)),
+            105. / 32. / nu.powi(9),
+        ])
     };
-    for i in 0..30 {
-        dbgbb::dbgbb!(bnc
-            .ratio(i as f128, drho, false)
-            .map(|x| x as f64)
-            .rename("ratio"));
-        dbgbb::dbgbb!(bnc
-            .hk(i as f128, drho, &i_nu, false)
-            .map(|x| x as f64)
-            .rename("hkc"));
-        dbg!(i);
-    }
+
+    let res_lam = bnc.hk(0., &lam, rho_ini, step, false);
+    bnc.ratio(20., rho_ini, step, true);
     // bnc.hk(20., drho, &i_nu, true);
-    // bnc.ratio(20., drho, false);
-    // dbgbb::dbgbb!(
-    //     bnc.rho.map(|&x| x as f64).rename("rho"),
-    //     bnc.phi.map(|&x| x as f64).rename("phi"),
-    //     bnc.psi0_nu.map(|&x| x as f64).rename("psi0"),
-    //     (&bnc.psi_nu / &bnc.psi0_nu)
-    //         .map(|&x| x as f64)
-    //         .rename("psi"),
-    //     bnc.phi.map(|&x| x as f64).rename("phi"),
-    //     (&bnc.psi1_nu / &bnc.psi0_nu)
-    //         .map(|&x| x as f64)
-    //         .rename("psi1"),
-    //     bnc.phi.map(|&x| x as f64).rename("phi"),
-    //     (&bnc.psi2_nu / &bnc.psi0_nu)
-    //         .map(|&x| x as f64)
-    //         .rename("psi2"),
-    //     bnc.err.map(|&x| x as f64).rename("err")
-    // );
+    for nu in 0..30 {
+        let ratio = bnc.ratio(nu as f128, rho_ini, step, false);
+        dbgbb::dbgbb!(((ratio[0].ln()
+            - (&res_lam * xi_approx(nu as f128)).fold(0., |acc, x| acc + x))
+            as f64)
+            .rename("subtracted"));
+        dbgbb::dbgbb!(ratio.map(|&x| x as f64).rename("ratio"));
+        dbgbb::dbgbb!((&res_lam * xi_approx(nu as f128))
+            .map(|&x| x as f64)
+            .rename("lam"));
+        // dbgbb::dbgbb!(bnc
+        //     .hk(i as f128, drho, &i_nu, false)
+        //     .map(|x| x as f64)
+        //     .rename("hkc"));
+        dbg!(nu);
+    }
 }

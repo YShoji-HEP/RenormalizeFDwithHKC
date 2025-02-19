@@ -12,11 +12,12 @@ impl<T: Potential> Bounce<T> {
     pub fn hk(
         &mut self,
         nu: f128,
-        drho: f128,
         i_nu: &dyn Fn(f128, f128) -> [f128; 5],
+        rho_ini: f128,
+        step: f128,
         debug: bool,
-    ) -> [f128; 5] {
-        let mut rho = drho * 10.;
+    ) -> Array1<f128> {
+        let mut rho = rho_ini;
         let mut y = arr1(&[self.phi_0, 0., 0., 0., 0., 0., 0.]);
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
             let phi = fld[0];
@@ -116,6 +117,7 @@ impl<T: Potential> Bounce<T> {
         let mut res_err = vec![0.];
 
         loop {
+            let drho = step / (1. / rho + (y[1] / self.phi_0).abs()).sqrt();
             let (dy, err) = stepper::dp45(rho, &y, drho, &dydrho);
             y += &dy;
             rho += drho;
@@ -152,6 +154,11 @@ impl<T: Potential> Bounce<T> {
                 .map(|&x| x as f64)
                 .collect::<Vec<_>>()
                 .rename("phi"));
+            dbgbb::dbgbb!(res_err
+                .iter()
+                .map(|&x| x as f64)
+                .collect::<Vec<_>>()
+                .rename("err"));
             dbgbb::dbgbb!(res_dhkc1
                 .iter()
                 .map(|&x| x as f64)
@@ -168,6 +175,6 @@ impl<T: Potential> Bounce<T> {
                 .collect::<Vec<_>>()
                 .rename("hke3"));
         }
-        [y[2], y[3], y[4], y[5], y[6]]
+        arr1(&[y[2], y[3], y[4], y[5], y[6]])
     }
 }

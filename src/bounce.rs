@@ -44,13 +44,13 @@ impl<T: Potential> Bounce<T> {
 }
 
 impl<T: Potential> Bounce<T> {
-    pub fn find_profile(&mut self, drho: f128, tol: f128, max_iter: usize) {
+    pub fn find_profile(&mut self, tol: f128, max_iter: usize, rho_ini: f128, step: f128) {
         let mut phi_0_range = self.v.phi_top()..self.v.phi_tv();
         let mut i = 0;
         while i < max_iter {
             self.phi_0 = (phi_0_range.start + phi_0_range.end) / 2.;
             dbg!(i, self.phi_0 as f64);
-            match self.shoot(drho, self.phi_0, tol) {
+            match self.shoot(self.phi_0, tol, rho_ini, step) {
                 ShootingResult::OverShoot => {
                     phi_0_range.end = self.phi_0;
                     i += 1;
@@ -65,8 +65,8 @@ impl<T: Potential> Bounce<T> {
             }
         }
     }
-    pub fn shoot(&mut self, drho: f128, phi_ini: f128, tol: f128) -> ShootingResult {
-        let mut rho = drho * 10.;
+    pub fn shoot(&mut self, phi_ini: f128, tol: f128, rho_ini: f128, step: f128) -> ShootingResult {
+        let mut rho = rho_ini;
         let mut y = arr1(&[phi_ini, 0.]);
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
             let phi = fld[0];
@@ -76,6 +76,7 @@ impl<T: Potential> Bounce<T> {
         };
         let mut dphi_max = -1.0_f128 / 0.0_f128;
         let res = loop {
+            let drho = step / (1. / rho + (y[1] / self.phi_0).abs()).sqrt();
             let (dy, _) = stepper::dp45(rho, &y, drho, &dydrho);
 
             y += &dy;
