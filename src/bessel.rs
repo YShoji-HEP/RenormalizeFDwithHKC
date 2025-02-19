@@ -1,11 +1,19 @@
 use std::collections::HashMap;
-
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn low() {
+        let ik = BesselIK::new(12);
+        dbg!(ik.low_z(6., 30) as f64);
+    }
+}
 struct BesselIK {
     nu: usize,
     sum_harmonic_init: f128,
 }
 
-const EULER_GAMMA: f128 = 0.577215664901532860606512090082;
+const EULER_GAMMA: f128 = 0.57721566490153286060651209008240243104215933593992;
 
 impl BesselIK {
     fn new(nu: usize) -> Self {
@@ -17,12 +25,12 @@ impl BesselIK {
             sum_harmonic_init,
         }
     }
-    fn low_z_int(&self, z: f128, n: usize) -> f128 {
+    fn low_z(&self, z: f128, n: usize) -> f128 {
         let fact = |i: usize| ((i + 1) as f128).gamma();
         let mut res = 0.;
-        for k in 0..n {
+        for k in 0..(n + 1) {
             let mut temp = 0.;
-            for l in 0..k.min(self.nu.max(1) - 1) {
+            for l in 0..(k + 1).min(self.nu) {
                 temp += (-1f128).powi(l as i32) * fact(self.nu - l - 1)
                     / fact(l)
                     / fact(k - l)
@@ -30,10 +38,10 @@ impl BesselIK {
             }
             res += temp * (z / 2.).powi(2 * k as i32) / 2.;
         }
-        for k in 0..n.max(self.nu) - self.nu {
+        for k in 0..(n + 1).max(self.nu) - self.nu {
             let mut temp = 0.;
             let mut sum_harmonic = self.sum_harmonic_init;
-            for l in 0..k.min(self.nu.max(1) - 1) {
+            for l in 0..k + 1 {
                 temp += (sum_harmonic / 2. - EULER_GAMMA - (z / 2.).ln())
                     / fact(l)
                     / fact(l + self.nu)
@@ -41,7 +49,7 @@ impl BesselIK {
                     / fact(k - l + self.nu);
                 sum_harmonic += 1. / (self.nu + l + 1) as f128 + 1. / (l + 1) as f128;
             }
-            res += temp * (z / 2.).powi(2 * (k + self.nu) as i32);
+            res += temp * (z / 2.).powi(2 * (k + self.nu) as i32) * (-1f128).powi(self.nu as i32);
         }
         res
     }
