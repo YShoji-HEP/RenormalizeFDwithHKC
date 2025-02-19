@@ -9,41 +9,26 @@ pub enum ShootingResult {
     Success,
 }
 
-pub struct Bounce<T: Potential> {
+#[derive(Clone)]
+pub struct Bounce<T: Potential + Clone> {
     pub v: T,
     pub dim: f128,
     pub phi_0: f128,
     pub rho_max: f128,
-    // pub rho: Array1<f128>,
-    // pub phi: Array1<f128>,
-    // pub phi_deriv: Array1<f128>,
-    // pub psi_nu: Array1<f128>,
-    // pub psi0_nu: Array1<f128>,
-    // pub psi1_nu: Array1<f128>,
-    // pub psi2_nu: Array1<f128>,
-    // pub err: Array1<f128>,
 }
 
-impl<T: Potential> Bounce<T> {
+impl<T: Potential + Clone> Bounce<T> {
     pub fn new(v: T, dim: f128) -> Self {
         Self {
             v,
             dim,
             phi_0: Default::default(),
             rho_max: 0.,
-            // rho: Default::default(),
-            // phi: Default::default(),
-            // phi_deriv: Default::default(),
-            // psi_nu: Default::default(),
-            // psi0_nu: Default::default(),
-            // psi1_nu: Default::default(),
-            // psi2_nu: Default::default(),
-            // err: Default::default(),
         }
     }
 }
 
-impl<T: Potential> Bounce<T> {
+impl<T: Potential + Clone> Bounce<T> {
     pub fn find_profile(&mut self, tol: f128, max_iter: usize, rho_ini: f128, step: f128) {
         let mut phi_0_range = self.v.phi_top()..self.v.phi_tv();
         let mut i = 0;

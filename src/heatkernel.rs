@@ -8,7 +8,7 @@ use ndarray_stats::QuantileExt;
 const ABS_TOL: f128 = 1e-5;
 const REL_TOL: f128 = 1e-5;
 
-impl<T: Potential> Bounce<T> {
+impl<T: Potential + Clone> Bounce<T> {
     pub fn hk(
         &mut self,
         nu: f128,
@@ -102,7 +102,12 @@ impl<T: Potential> Bounce<T> {
                                 * dm2
                                 * ddm2
                             + 3. * (self.dim - 1.) * (self.dim - 3.) / rho_ode.powi(4)
-                                * dm2.powi(2)))
+                                * dm2.powi(2))
+                    + z / 12.
+                        * ((ddm2.powi(2) + (self.dim - 1.) * dm2.powi(2) / rho_ode.powi(2))
+                            + dm2
+                                * (d3m2 + (self.dim - 1.) / rho_ode * ddm2
+                                    - (self.dim - 1.) / rho_ode.powi(2) * dm2)))
                 * int_nu[4];
 
             arr1(&[dphi, ddphi, dhkc1, dhkc2, dhkc3, dhkc4, dhkc5])
