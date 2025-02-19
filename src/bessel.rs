@@ -3,11 +3,13 @@ use std::collections::HashMap;
 mod tests {
     use super::*;
     #[test]
-    fn low() {
+    fn compare() {
         let ik = BesselIK::new(12);
-        dbg!(ik.low_z(6., 30) as f64);
+        dbg!(ik.low_z(12., 30) as f64);
+        dbg!(ik.high_z(12., 25) as f64);
     }
 }
+
 struct BesselIK {
     nu: usize,
     sum_harmonic_init: f128,
@@ -56,30 +58,30 @@ impl BesselIK {
     fn high_z(&self, z: f128, n: usize) -> f128 {
         let p = (1. + (z / self.nu as f128).powi(2)).powf(-0.5);
         let mut init = HashMap::new();
-        init.insert(0, 0f128);
+        init.insert(0, 1f128);
         let mut coefs = vec![init];
 
         let mut res = 0.;
-        for k in 0..n {
-            for j in 2 * k.max(1) - 1..2 * k + 1 {
-                let mut new_coef = HashMap::new();
-                for (&n, c) in &coefs[j] {
-                    let entry = new_coef.entry(n + 1).or_insert(0.);
-                    *entry += c * (2. * n as f128 + 1.).powi(2) / 8. / (n as f128 + 1.);
-                    let entry = new_coef.entry(n + 3).or_insert(0.);
-                    *entry -= c * (n as f128 / 2. + 5. / 8. / (3. + n as f128));
-                }
-                coefs.push(new_coef);
+        for k in 1..2 * n + 1 {
+            let mut new_coef = HashMap::new();
+            for (&i, c) in &coefs[k - 1] {
+                let entry = new_coef.entry(i + 1).or_insert(0.);
+                *entry += c * (2. * i as f128 + 1.).powi(2) / 8. / (i as f128 + 1.);
+                let entry = new_coef.entry(i + 3).or_insert(0.);
+                *entry -= c * (i as f128 / 2. + 5. / 8. / (3. + i as f128));
             }
+            coefs.push(new_coef);
+        }
+        for k in 0..(n + 1) {
             let mut temp = 0.;
             for m in 0..2 * k + 1 {
                 let u_1 = coefs[m]
                     .iter()
-                    .map(|(&n, c)| c * z.powi(n))
+                    .map(|(&i, c)| c * p.powi(i))
                     .fold(0., |acc, x| acc + x);
                 let u_2 = coefs[2 * k - m]
                     .iter()
-                    .map(|(&n, c)| c * z.powi(n))
+                    .map(|(&i, c)| c * p.powi(i))
                     .fold(0., |acc, x| acc + x);
                 temp += (-1f128).powi(m as i32) * u_1 * u_2;
             }
