@@ -74,23 +74,22 @@ fn main() {
     bnc.ratio(20., rho_ini, step, true);
     // bnc.hk(20., drho, &i_nu, true);
     for nu in 0..30 {
-        let bessel = BesselIK::new(nu);
         let hke = |_: f128, rho: f128| {
             [
-                rho * bessel.val(rho * sqrt_mhat),
-                -rho.powi(2) / 2. / sqrt_mhat * bessel.deriv(rho * sqrt_mhat, 1),
+                rho * (rho * sqrt_mhat).besselik(nu),
+                -rho.powi(2) / 2. / sqrt_mhat * (rho * sqrt_mhat).besselik_deriv(nu, 1),
                 rho.powi(2) / 4. / sqrt_mhat.powi(3)
-                    * (rho * sqrt_mhat * bessel.deriv(rho * sqrt_mhat, 2)
-                        - bessel.deriv(rho * sqrt_mhat, 1)),
+                    * (rho * sqrt_mhat * (rho * sqrt_mhat).besselik_deriv(nu, 2)
+                        - (rho * sqrt_mhat).besselik_deriv(nu, 1)),
                 -rho.powi(2) / 8. / sqrt_mhat.powi(5)
-                    * ((rho * sqrt_mhat).powi(2) * bessel.deriv(rho * sqrt_mhat, 3)
-                        - 3. * rho * sqrt_mhat * bessel.deriv(rho * sqrt_mhat, 2)
-                        + 3. * bessel.deriv(rho * sqrt_mhat, 1)),
+                    * ((rho * sqrt_mhat).powi(2) * (rho * sqrt_mhat).besselik_deriv(nu, 3)
+                        - 3. * rho * sqrt_mhat * (rho * sqrt_mhat).besselik_deriv(nu, 2)
+                        + 3. * (rho * sqrt_mhat).besselik_deriv(nu, 1)),
                 rho.powi(2) / 16. / sqrt_mhat.powi(7)
-                    * ((rho * sqrt_mhat).powi(3) * bessel.deriv(rho * sqrt_mhat, 4)
-                        - 6. * (rho * sqrt_mhat).powi(2) * bessel.deriv(rho * sqrt_mhat, 3)
-                        + 15. * rho * sqrt_mhat * bessel.deriv(rho * sqrt_mhat, 2)
-                        - 15. * bessel.deriv(rho * sqrt_mhat, 1)),
+                    * ((rho * sqrt_mhat).powi(3) * (rho * sqrt_mhat).besselik_deriv(nu, 4)
+                        - 6. * (rho * sqrt_mhat).powi(2) * (rho * sqrt_mhat).besselik_deriv(nu, 3)
+                        + 15. * rho * sqrt_mhat * (rho * sqrt_mhat).besselik_deriv(nu, 2)
+                        - 15. * (rho * sqrt_mhat).besselik_deriv(nu, 1)),
             ]
         };
         let ratio = bnc.ratio(nu as f128, rho_ini, step, false);
