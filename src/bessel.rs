@@ -10,42 +10,78 @@ mod tests {
         let z: Array1<f128> = (0..100).map(|i| i as f128 / 100. * 50.).collect();
         // let lz = z.map(|&x| ik.low_z(x, 100) as f64);
         // let hz = z.map(|&x| ik.high_z(x, 30) as f64);
-        let res = z.map(|&x| ik.first_deriv(x) as f64);
+        let res = z.map(|&x| ik.deriv(x,2) as f64);
         let z = z.map(|&x| x as f64);
         dbgbb!(z, res);
     }
 }
 
-struct BesselIK {
+pub struct BesselIK {
     nu: usize,
     sum_harmonic_init: f128,
 }
 
 const EULER_GAMMA: f128 = 0.57721566490153286060651209008240243104215933593992;
 
+use special_fun::FloatSpecial;
 impl BesselIK {
-    fn new(nu: usize) -> Self {
-        let sum_harmonic_init: f128 = (1..nu + 1)
-            .map(|i| 1. / i as f128)
-            .fold(0., |acc, x| acc + x);
+    pub fn new(nu: usize) -> Self {
+        // let sum_harmonic_init: f128 = (1..nu + 1)
+        //     .map(|i| 1. / i as f128)
+        //     .fold(0., |acc, x| acc + x);
         Self {
             nu,
-            sum_harmonic_init,
+            sum_harmonic_init: 0.,
         }
     }
-    fn val(&self, z: f128) -> f128 {
-        if z < 20. {
-            self.low_z(z, 110)
-        } else {
-            self.high_z(z, 35)
-        }
+    pub fn val(&self, z: f128) -> f128 {
+        // if z < 20. {
+        //     self.low_z(z, 110)
+        // } else {
+        //     self.high_z(z, 35)
+        // }
+        ((z as f64).besseli(self.nu as f64) * (z as f64).besselk(self.nu as i32)) as f128
     }
-    fn first_deriv(&self, z: f128) -> f128 {
-        if z < 20. {
-            self.low_z_first_deriv(z, 110)
-        } else {
-            self.high_z_first_deriv(z, 35)
+    pub fn first_deriv(&self, z: f128) -> f128 {
+        // if z < 20. {
+        //     self.low_z_first_deriv(z, 110)
+        // } else {
+        //     self.high_z_first_deriv(z, 35)
+        // }
+        (((z as f64).besseli(self.nu as f64 + 1.) + (z as f64).besseli(self.nu as f64 - 1.))
+            * (z as f64).besselk(self.nu as i32)
+            / 2.
+            - (z as f64).besseli(self.nu as f64)
+                * ((z as f64).besselk(self.nu as i32 + 1) + (z as f64).besselk(self.nu as i32 - 1))
+                / 2.) as f128
+    }
+    pub fn deriv(&self, z: f128, n: usize) -> f128 {
+        let mut coefs = HashMap::new();
+        coefs.insert((self.nu, self.nu), 1f128);
+        for _ in 0..n {
+            let mut coefs_new = HashMap::new();
+            for ((nu_i, nu_k), c) in coefs {
+                let entry = coefs_new.entry((nu_i + 1, nu_k)).or_insert(0.);
+                *entry += 0.5 * c;
+                let entry = coefs_new
+                    .entry((if nu_i == 0 { 1 } else { nu_i - 1 }, nu_k))
+                    .or_insert(0.);
+                *entry += 0.5 * c;
+                let entry = coefs_new.entry((nu_i, nu_k + 1)).or_insert(0.);
+                *entry += -0.5 * c;
+                let entry = coefs_new
+                    .entry((nu_i, if nu_k == 0 { 1 } else { nu_k - 1 }))
+                    .or_insert(0.);
+                *entry += -0.5 * c;
+            }
+            coefs = coefs_new;
         }
+        coefs
+            .iter()
+            .map(|((nu_i, nu_k), c)| {
+                *c as f64 * (z as f64).besseli(*nu_i as f64) * (z as f64).besselk(*nu_k as i32)
+            })
+            .sum::<f64>() as f128
     }
     fn low_z(&self, z: f128, n: usize) -> f128 {
         let fact = |i: usize| ((i + 1) as f128).gamma();

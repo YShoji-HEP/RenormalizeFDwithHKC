@@ -13,6 +13,7 @@ impl<T: Potential> Bounce<T> {
         &mut self,
         nu: f128,
         i_nu: &dyn Fn(f128, f128) -> [f128; 5],
+        z: f128,
         rho_ini: f128,
         step: f128,
         debug: bool,
@@ -39,8 +40,8 @@ impl<T: Potential> Bounce<T> {
                 - 6. * (self.dim - 1.) / rho_ode.powi(3) * ddphi
                 + 6. * (self.dim - 1.) / rho_ode.powi(4) * dphi;
 
-            let m2_hat = self.v.second_deriv_fv();
-            let m2 = self.v.second_deriv(phi);
+            let m2_hat = self.v.second_deriv_fv() - z;
+            let m2 = self.v.second_deriv(phi) - z;
             let dm2 = self.v.third_deriv(phi) * dphi;
             let ddm2 = self.v.third_deriv(phi) * ddphi + self.v.forth_deriv(phi) * dphi.powi(2);
             let d3m2 =

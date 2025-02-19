@@ -7,3 +7,4 @@ edition = "2021"
 ndarray = "0.16.1"
 ndarray-stats = "0.6.0"
 dbgbb = { version="0.3.2", features=["ndarray_16"] }
+special-fun = "0.3.0"

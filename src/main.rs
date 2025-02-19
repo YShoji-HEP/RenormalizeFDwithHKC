@@ -1,11 +1,12 @@
 #![feature(f128)]
+mod bessel;
 mod bounce;
 mod determinant;
 mod heatkernel;
 mod potential;
 mod tools;
-mod bessel;
 
+use bessel::BesselIK;
 use bounce::Bounce;
 use ndarray::arr1;
 use potential::Potential;
@@ -50,7 +51,8 @@ impl Potential for PhiFour {
 }
 
 fn main() {
-    let v = PhiFour::new(0.2);
+    let k = 0.2;
+    let v = PhiFour::new(k);
     let mut bnc = Bounce::new(v, 4.);
     let rho_ini = 1e-4;
     let step = 3e-4;
@@ -67,10 +69,30 @@ fn main() {
         ])
     };
 
-    let res_lam = bnc.hk(0., &lam, rho_ini, step, false);
+    let sqrt_mhat = k.sqrt();
+    let res_lam = bnc.hk(0., &lam, sqrt_mhat.powi(2), rho_ini, step, false);
     bnc.ratio(20., rho_ini, step, true);
     // bnc.hk(20., drho, &i_nu, true);
     for nu in 0..30 {
+        let bessel = BesselIK::new(nu);
+        let hke = |_: f128, rho: f128| {
+            [
+                rho * bessel.val(rho * sqrt_mhat),
+                -rho.powi(2) / 2. / sqrt_mhat * bessel.deriv(rho * sqrt_mhat, 1),
+                rho.powi(2) / 4. / sqrt_mhat.powi(3)
+                    * (rho * sqrt_mhat * bessel.deriv(rho * sqrt_mhat, 2)
+                        - bessel.deriv(rho * sqrt_mhat, 1)),
+                -rho.powi(2) / 8. / sqrt_mhat.powi(5)
+                    * ((rho * sqrt_mhat).powi(2) * bessel.deriv(rho * sqrt_mhat, 3)
+                        - 3. * rho * sqrt_mhat * bessel.deriv(rho * sqrt_mhat, 2)
+                        + 3. * bessel.deriv(rho * sqrt_mhat, 1)),
+                rho.powi(2) / 16. / sqrt_mhat.powi(7)
+                    * ((rho * sqrt_mhat).powi(3) * bessel.deriv(rho * sqrt_mhat, 4)
+                        - 6. * (rho * sqrt_mhat).powi(2) * bessel.deriv(rho * sqrt_mhat, 3)
+                        + 15. * rho * sqrt_mhat * bessel.deriv(rho * sqrt_mhat, 2)
+                        - 15. * bessel.deriv(rho * sqrt_mhat, 1)),
+            ]
+        };
         let ratio = bnc.ratio(nu as f128, rho_ini, step, false);
         dbgbb::dbgbb!(((ratio[0].ln()
             - (&res_lam * xi_approx(nu as f128)).fold(0., |acc, x| acc + x))
@@ -80,10 +102,10 @@ fn main() {
         dbgbb::dbgbb!((&res_lam * xi_approx(nu as f128))
             .map(|&x| x as f64)
             .rename("lam"));
-        // dbgbb::dbgbb!(bnc
-        //     .hk(i as f128, drho, &i_nu, false)
-        //     .map(|x| x as f64)
-        //     .rename("hkc"));
+        dbgbb::dbgbb!(bnc
+            .hk(nu as f128, &hke, sqrt_mhat.powi(2), rho_ini, step, false)
+            .map(|&x| x as f64)
+            .rename("hke"));
         dbg!(nu);
     }
 }
