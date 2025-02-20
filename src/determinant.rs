@@ -1,15 +1,15 @@
 use crate::bounce::Bounce;
 use crate::potential::Potential;
-use crate::tools::f128tools::*;
 use crate::tools::stepper;
 use ndarray::{arr1, Array1};
-use ndarray_stats::QuantileExt;
 
-const ABS_TOL: f128 = 1e-5;
-const REL_TOL: f128 = 1e-5;
+// use crate::tools::f128tools::*;
+// use ndarray_stats::QuantileExt;
+// const ABS_TOL: f128 = 1e-5;
+// const REL_TOL: f128 = 1e-5;
 
 impl<T: Potential + Clone> Bounce<T> {
-    pub fn ratio(&mut self, nu: f128, rho_ini: f128, step: f128, debug: bool) -> Array1<f128> {
+    pub fn ratio(&mut self, nu: f128, rho_ini: f128, step: f128) -> Array1<f128> {
         let mut rho = rho_ini;
         let mut y = arr1(&[self.phi_0, 0., 1., 0., 1., 0., 0., 0., 0., 0., 0., 0.]);
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
@@ -45,19 +45,10 @@ impl<T: Potential + Clone> Bounce<T> {
                 ddpsi2_nu, dpsi3_nu, ddpsi3_nu,
             ])
         };
-        let mut res_rho = vec![rho];
-        let mut res_phi = vec![y[0]];
-        let mut res_dphi = vec![y[1]];
-        let mut res_psi_nu = vec![y[2]];
-        let mut res_psi0_nu = vec![y[4]];
-        let mut res_psi1_nu = vec![y[6]];
-        let mut res_psi2_nu = vec![y[8]];
-        let mut res_psi3_nu = vec![y[10]];
-        let mut res_err = vec![0.];
 
         loop {
             let drho = step / (1. / rho + (y[1] / self.phi_0).abs()).sqrt();
-            let (dy, err) = stepper::dp45(rho, &y, drho, &dydrho);
+            let (dy, _err) = stepper::dp45(rho, &y, drho, &dydrho);
             y += &dy;
             rho += drho;
 
@@ -65,39 +56,9 @@ impl<T: Potential + Clone> Bounce<T> {
                 break;
             }
 
-            if debug {
-                let err = *(err.map(|x| x.abs()) / (y.map(|x| x.abs()).mul(REL_TOL).add(ABS_TOL)))
-                    .max()
-                    .unwrap();
-                res_rho.push(rho);
-                res_phi.push(y[0]);
-                res_dphi.push(y[1]);
-
-                res_psi_nu.push(y[2]);
-                res_psi0_nu.push(y[4]);
-                res_psi1_nu.push(y[6]);
-                res_psi2_nu.push(y[8]);
-                res_psi3_nu.push(y[10]);
-
-                res_err.push(err);
-            }
-        }
-        if debug {
-            dbgbb::dbgbb!(res_rho
-                .iter()
-                .map(|&x| x as f64)
-                .collect::<Vec<_>>()
-                .rename("rho"));
-            dbgbb::dbgbb!(res_phi
-                .iter()
-                .map(|&x| x as f64)
-                .collect::<Vec<_>>()
-                .rename("phi"));
-            dbgbb::dbgbb!(res_err
-                .iter()
-                .map(|&x| x as f64)
-                .collect::<Vec<_>>()
-                .rename("err"));
+            // let err = *(err.map(|x| x.abs()) / (y.map(|x| x.abs()).mul(REL_TOL).add(ABS_TOL)))
+            //     .max()
+            //     .unwrap();
         }
         arr1(&[y[2] / y[4], y[6] / y[4], y[8] / y[4], y[10] / y[4]])
     }
