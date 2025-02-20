@@ -11,7 +11,18 @@ use ndarray::{arr1, Array1};
 impl<T: Potential + Clone> Bounce<T> {
     pub fn ratio(&mut self, nu: f128, rho_ini: f128, step: f128) -> Array1<f128> {
         let mut rho = rho_ini;
-        let mut y = arr1(&[self.phi_0, 0., 1., 0., 1., 0., 0., 0., 0., 0., 0., 0.]);
+        let phi_a = self.phi_0
+            + self.v.first_deriv(self.phi_0) * rho_ini.powi(2) / 2. / self.dim
+            + self.v.first_deriv(self.phi_0) * self.v.second_deriv(self.phi_0) * rho_ini.powi(4)
+                / 8.
+                / self.dim
+                / (self.dim + 2.);
+        let dphi_a = self.v.first_deriv(self.phi_0) * rho_ini / self.dim
+            + self.v.first_deriv(self.phi_0) * self.v.second_deriv(self.phi_0) * rho_ini.powi(3)
+                / 2.
+                / self.dim
+                / (self.dim + 2.);
+        let mut y = arr1(&[phi_a, dphi_a, 1., 0., 1., 0., 0., 0., 0., 0., 0., 0.]);
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
             let phi = fld[0];
             let dphi = fld[1];

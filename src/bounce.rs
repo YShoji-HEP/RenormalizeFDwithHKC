@@ -35,7 +35,7 @@ impl<T: Potential + Clone> Bounce<T> {
         while i < max_iter {
             self.phi_0 = (phi_0_range.start + phi_0_range.end) / 2.;
             dbg!(i, self.phi_0 as f64);
-            match self.shoot(self.phi_0, tol, rho_ini, step) {
+            match self.shoot(tol, rho_ini, step) {
                 ShootingResult::OverShoot => {
                     phi_0_range.end = self.phi_0;
                     i += 1;
@@ -50,9 +50,20 @@ impl<T: Potential + Clone> Bounce<T> {
             }
         }
     }
-    pub fn shoot(&mut self, phi_ini: f128, tol: f128, rho_ini: f128, step: f128) -> ShootingResult {
+    pub fn shoot(&mut self, tol: f128, rho_ini: f128, step: f128) -> ShootingResult {
         let mut rho = rho_ini;
-        let mut y = arr1(&[phi_ini, 0.]);
+        let phi_a = self.phi_0
+            + self.v.first_deriv(self.phi_0) * rho_ini.powi(2) / 2. / self.dim
+            + self.v.first_deriv(self.phi_0) * self.v.second_deriv(self.phi_0) * rho_ini.powi(4)
+                / 8.
+                / self.dim
+                / (self.dim + 2.);
+        let dphi_a = self.v.first_deriv(self.phi_0) * rho_ini / self.dim
+            + self.v.first_deriv(self.phi_0) * self.v.second_deriv(self.phi_0) * rho_ini.powi(3)
+                / 2.
+                / self.dim
+                / (self.dim + 2.);
+        let mut y = arr1(&[phi_a, dphi_a]);
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
             let phi = fld[0];
             let dphi = fld[1];

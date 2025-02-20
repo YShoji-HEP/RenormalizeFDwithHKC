@@ -1,6 +1,7 @@
 use crate::bounce::Bounce;
 use crate::potential::Potential;
 use crate::tools::stepper;
+use dbgbb::dbgbb_acc;
 use ndarray::{arr1, Array1};
 
 // use ndarray_stats::QuantileExt;
@@ -18,7 +19,18 @@ impl<T: Potential + Clone> Bounce<T> {
         step: f128,
     ) -> Array1<f128> {
         let mut rho = rho_ini;
-        let mut y = arr1(&[self.phi_0, 0., 0., 0., 0., 0., 0.]);
+        let phi_a = self.phi_0
+            + self.v.first_deriv(self.phi_0) * rho_ini.powi(2) / 2. / self.dim
+            + self.v.first_deriv(self.phi_0) * self.v.second_deriv(self.phi_0) * rho_ini.powi(4)
+                / 8.
+                / self.dim
+                / (self.dim + 2.);
+        let dphi_a = self.v.first_deriv(self.phi_0) * rho_ini / self.dim
+            + self.v.first_deriv(self.phi_0) * self.v.second_deriv(self.phi_0) * rho_ini.powi(3)
+                / 2.
+                / self.dim
+                / (self.dim + 2.);
+        let mut y = arr1(&[phi_a, dphi_a, 0., 0., 0., 0., 0.]);
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
             let phi = fld[0];
             let dphi = fld[1];
@@ -38,6 +50,7 @@ impl<T: Potential + Clone> Bounce<T> {
                 + 3. * (self.dim - 1.) / rho_ode.powi(2) * d3phi
                 - 6. * (self.dim - 1.) / rho_ode.powi(3) * ddphi
                 + 6. * (self.dim - 1.) / rho_ode.powi(4) * dphi;
+            dbgbb_acc!(label=>"deriv",every=>14,rho_ode as f64,phi as f64,dphi as f64,ddphi as f64,d3phi as f64,d4phi as f64,d5phi as f64);
 
             let m2_hat = self.v.second_deriv_fv() - z;
             let m2 = self.v.second_deriv(phi) - z;
@@ -126,6 +139,7 @@ impl<T: Potential + Clone> Bounce<T> {
             //     .max()
             //     .unwrap();
         }
+        dbgbb_acc!("deriv"=>post);
         arr1(&[y[2], y[3], y[4], y[5], y[6]])
     }
 }
