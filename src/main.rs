@@ -56,7 +56,7 @@ impl Potential for PhiFour {
 fn main() {
     let _buf = dbgbb::Buffer::on();
 
-    let k = 0.2;
+    let k = 0.4;
     let v = PhiFour::new(k);
 
     let rho_ini = 1e-4;
@@ -73,14 +73,32 @@ fn main() {
 
     let xi_approx = |nu: f128| {
         let d_nu = nu.powi(2);
-        arr1(&[
-            d_nu * 1. / 2. / nu,
-            d_nu * 1. / 4. / nu.powi(3)
-                * (1. + 1. / nu.powi(2) + 1. / nu.powi(4) + 1. / nu.powi(6)),
-            d_nu * 3. / 8. / nu.powi(5) * (1. + 5. / nu.powi(2) + 21. / nu.powi(4)),
-            d_nu * 15. / 16. / nu.powi(7) * (1. + 14. / nu.powi(2)),
-            d_nu * 105. / 32. / nu.powi(9),
-        ])
+        [
+            arr1(&[d_nu * 1. / 2. / nu, 0., 0., 0., 0.]),
+            arr1(&[d_nu * 1. / 2. / nu, d_nu * 1. / 4. / nu.powi(3), 0., 0., 0.]),
+            arr1(&[
+                d_nu * 1. / 2. / nu,
+                d_nu * 1. / 4. / nu.powi(3) * (1. + 1. / nu.powi(2)),
+                d_nu * 3. / 8. / nu.powi(5),
+                0.,
+                0.,
+            ]),
+            arr1(&[
+                d_nu * 1. / 2. / nu,
+                d_nu * 1. / 4. / nu.powi(3) * (1. + 1. / nu.powi(2) + 1. / nu.powi(4)),
+                d_nu * 3. / 8. / nu.powi(5) * (1. + 5. / nu.powi(2)),
+                d_nu * 15. / 16. / nu.powi(7),
+                0.,
+            ]),
+            arr1(&[
+                d_nu * 1. / 2. / nu,
+                d_nu * 1. / 4. / nu.powi(3)
+                    * (1. + 1. / nu.powi(2) + 1. / nu.powi(4) + 1. / nu.powi(6)),
+                d_nu * 3. / 8. / nu.powi(5) * (1. + 5. / nu.powi(2) + 21. / nu.powi(4)),
+                d_nu * 15. / 16. / nu.powi(7) * (1. + 14. / nu.powi(2)),
+                d_nu * 105. / 32. / nu.powi(9),
+            ]),
+        ]
     };
 
     let mhat = k.sqrt();
@@ -137,15 +155,15 @@ fn main() {
             let lndet = ratio[0].abs().ln();
 
             let fd_1 = d_nu * (lndet - ratio[1]);
-            let fd_2 = fd_1 - d_nu * (ratio[2] + ratio[1].powi(2) / 2.);
-            let fd_3 = fd_2 - d_nu * (ratio[3] + ratio[1] * ratio[2] - ratio[1].powi(3) / 3.);
+            let fd_2 = fd_1 - d_nu * (ratio[2] - ratio[1].powi(2) / 2.);
+            let fd_3 = fd_2 - d_nu * (ratio[3] - ratio[1] * ratio[2] + ratio[1].powi(3) / 3.);
 
-            let lam_temp = &res_lam * xi_approx(nu as f128);
-            let lam_1 = d_nu * lndet - lam_temp[0];
-            let lam_2 = lam_1 - lam_temp[1];
-            let lam_3 = lam_2 - lam_temp[2];
-            let lam_4 = lam_3 - lam_temp[3];
-            let lam_5 = lam_4 - lam_temp[4];
+            let lam_xi = xi_approx(nu as f128);
+            let lam_1 = d_nu * lndet - (&res_lam * &lam_xi[0]).fold(0., |acc, x| acc + x);
+            let lam_2 = d_nu * lndet - (&res_lam * &lam_xi[1]).fold(0., |acc, x| acc + x);
+            let lam_3 = d_nu * lndet - (&res_lam * &lam_xi[2]).fold(0., |acc, x| acc + x);
+            let lam_4 = d_nu * lndet - (&res_lam * &lam_xi[3]).fold(0., |acc, x| acc + x);
+            let lam_5 = d_nu * lndet - (&res_lam * &lam_xi[4]).fold(0., |acc, x| acc + x);
 
             let hke_temp = bnc.hk(nu as f128, &hke, mhat.powi(2), rho_ini, step);
             let hke_1 = d_nu * (lndet - hke_temp[0]);
@@ -159,7 +177,7 @@ fn main() {
                 &format!("k:{}", k as f64),
                 [
                     nu as f64,
-                    lndet.abs() as f64,
+                    (d_nu * lndet.abs()) as f64,
                     fd_1.abs() as f64,
                     fd_2.abs() as f64,
                     fd_3.abs() as f64,
