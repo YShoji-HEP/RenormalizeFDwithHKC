@@ -83,8 +83,29 @@ fn main() {
         ])
     };
 
-    let mhat = k.sqrt()*0.5;
+    let mhat = k.sqrt();
     let res_lam = bnc.hk(0., &lam, 0., rho_ini, step);
+
+    // let nu = 20;
+    // let hke = |_: f128, rho: f128| {
+    //     [
+    //         rho * (rho * mhat).besselik(nu),
+    //         -rho.powi(2) / 2. / mhat * (rho * mhat).besselik_deriv(nu, 1),
+    //         rho.powi(2) / 4. / mhat.powi(3)
+    //             * (rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
+    //                 - (rho * mhat).besselik_deriv(nu, 1)),
+    //         -rho.powi(2) / 8. / mhat.powi(5)
+    //             * ((rho * mhat).powi(2) * (rho * mhat).besselik_deriv(nu, 3)
+    //                 - 3. * rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
+    //                 + 3. * (rho * mhat).besselik_deriv(nu, 1)),
+    //         rho.powi(2) / 16. / mhat.powi(7)
+    //             * ((rho * mhat).powi(3) * (rho * mhat).besselik_deriv(nu, 4)
+    //                 - 6. * (rho * mhat).powi(2) * (rho * mhat).besselik_deriv(nu, 3)
+    //                 + 15. * rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
+    //                 - 15. * (rho * mhat).besselik_deriv(nu, 1)),
+    //     ]
+    // };
+    // bnc.hk(nu as f128, &hke, mhat.powi(2), rho_ini, step);
 
     let mut handle = vec![];
     for nu in 0..22 {

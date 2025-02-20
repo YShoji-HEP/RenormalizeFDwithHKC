@@ -3,6 +3,7 @@ use crate::potential::Potential;
 use crate::tools::stepper;
 use ndarray::{arr1, Array1};
 
+// use dbgbb::dbgbb_acc;
 // use ndarray_stats::QuantileExt;
 // use crate::tools::f128tools::*;
 // const ABS_TOL: f128 = 1e-5;
@@ -113,12 +114,14 @@ impl<T: Potential + Clone> Bounce<T> {
                                 * ddm2
                             + 3. * (self.dim - 1.) * (self.dim - 3.) / rho_ode.powi(4)
                                 * dm2.powi(2))
-                    + z / 12.
+                    - z / 12.
                         * ((ddm2.powi(2) + (self.dim - 1.) * dm2.powi(2) / rho_ode.powi(2))
                             + dm2
                                 * (d3m2 + (self.dim - 1.) / rho_ode * ddm2
                                     - (self.dim - 1.) / rho_ode.powi(2) * dm2)))
                 * int_nu[4];
+
+            // dbgbb_acc!(label=>"z",every=>14,rho_ode as f64,m2 as f64,d4m2 as f64,d5m2 as f64,dhkc1 as f64,dhkc2 as f64,dhkc3 as f64,dhkc4 as f64,dhkc5 as f64);
 
             arr1(&[dphi, ddphi, dhkc1, dhkc2, dhkc3, dhkc4, dhkc5])
         };
@@ -137,7 +140,7 @@ impl<T: Potential + Clone> Bounce<T> {
             //     .max()
             //     .unwrap();
         }
-
+        // dbgbb_acc!("z"=>post);
         arr1(&[y[2], y[3], y[4], y[5], y[6]])
     }
 }
