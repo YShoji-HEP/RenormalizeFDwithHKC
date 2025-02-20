@@ -56,7 +56,7 @@ impl Potential for PhiFour {
 fn main() {
     let _buf = dbgbb::Buffer::on();
 
-    let k = 0.4;
+    let k = 0.2;
     let v = PhiFour::new(k);
 
     let rho_ini = 1e-4;
@@ -126,7 +126,7 @@ fn main() {
     // bnc.hk(nu as f128, &hke, mhat.powi(2), rho_ini, step);
 
     let mut handle = vec![];
-    for nu in 0..22 {
+    for nu in 1..25 {
         let mut bnc = bnc.clone();
         let res_lam = res_lam.clone();
         handle.push(thread::spawn(move || {

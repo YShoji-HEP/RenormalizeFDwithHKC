@@ -228,6 +228,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
 dependencies = [
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -327,6 +328,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60a357793950651c4ed0f3f52338f53b2f809f32d83a07f72909fa13e4c6c1e3"
 
 [[package]]
+name = "russell_lab"
+version = "1.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2bfef791f52bef9e099dad3af3f8cd6d4d2abb60664f8b024dba6c282b60a5e2"
+dependencies = [
+ "cc",
+ "num-complex",
+ "num-traits",
+ "serde",
+]
+
+[[package]]
 name = "serde"
 version = "1.0.217"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -362,15 +375,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
-name = "special-fun"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9eb4bd24b8b2eb5eea491312924709e030e1a64f9e19c92f36ef0cbfaf68783c"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "subtraction"
 version = "0.1.0"
 dependencies = [
@@ -378,7 +382,7 @@ dependencies = [
  "dbgbb",
  "ndarray",
  "ndarray-stats",
- "special-fun",
+ "russell_lab",
 ]
 
 [[package]]
