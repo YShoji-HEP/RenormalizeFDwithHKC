@@ -96,8 +96,8 @@ fn main() {
     // bnc.hk(nu, &hke, mhat.powi(2), rho_ini, step);
     ///////////////
 
-    let calc_fd = true;
-    let calc_lam = true;
+    let calc_fd = false;
+    let calc_lam = false;
     let calc_hke = true;
 
     let xi_approx = |nu: f128| {
@@ -137,87 +137,95 @@ fn main() {
     };
 
     let nu_max = 24;
+    // let z_list = [
+    //     0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5,
+    // ];
+    let z_list = [
+        0.01, 0.1, 1.5, 2., 10.
+    ];
 
     let mut handle = vec![];
-    for nu in 1usize..nu_max + 1 {
-        let mut bnc = bnc.clone();
-        let res_lam = res_lam.clone();
-        handle.push(thread::spawn(move || {
-            let d_nu = nu.pow(2) as f128;
+    for z in z_list {
+        for nu in 1usize..nu_max + 1 {
+            let mut bnc = bnc.clone();
+            let res_lam = res_lam.clone();
+            handle.push(thread::spawn(move || {
+                let d_nu = nu.pow(2) as f128;
 
-            let ratio = bnc.ratio(nu as f128, rho_ini, step);
+                let ratio = bnc.ratio(nu as f128, rho_ini, step);
 
-            let dnu_lndet = d_nu * ratio[0].abs().ln();
+                let dnu_lndet = d_nu * ratio[0].abs().ln();
 
-            if calc_fd {
-                let fd_1 = dnu_lndet - d_nu * ratio[1];
-                let fd_2 = fd_1 - d_nu * (ratio[2] - ratio[1].powi(2) / 2.);
-                let fd_3 = fd_2 - d_nu * (ratio[3] - ratio[1] * ratio[2] + ratio[1].powi(3) / 3.);
+                if calc_fd {
+                    let fd_1 = dnu_lndet - d_nu * ratio[1];
+                    let fd_2 = fd_1 - d_nu * (ratio[2] - ratio[1].powi(2) / 2.);
+                    let fd_3 =
+                        fd_2 - d_nu * (ratio[3] - ratio[1] * ratio[2] + ratio[1].powi(3) / 3.);
 
-                bbclient::post(
-                    "lndet",
-                    &format!("k:{}", k as f64),
-                    [
-                        nu as f64,
-                        dnu_lndet.abs() as f64,
-                        fd_1.abs() as f64,
-                        fd_2.abs() as f64,
-                        fd_3.abs() as f64,
-                    ]
-                    .into(),
-                )
-                .unwrap();
-            }
+                    bbclient::post(
+                        "lndet",
+                        &format!("k:{}", k as f64),
+                        [
+                            nu as f64,
+                            dnu_lndet.abs() as f64,
+                            fd_1.abs() as f64,
+                            fd_2.abs() as f64,
+                            fd_3.abs() as f64,
+                        ]
+                        .into(),
+                    )
+                    .unwrap();
+                }
 
-            if calc_lam {
-                let lam_xi = xi_approx(nu as f128);
-                let lam_1 = dnu_lndet - (&res_lam * &lam_xi[0]).fold(0., |acc, x| acc + x);
-                let lam_2 = dnu_lndet - (&res_lam * &lam_xi[1]).fold(0., |acc, x| acc + x);
-                let lam_3 = dnu_lndet - (&res_lam * &lam_xi[2]).fold(0., |acc, x| acc + x);
-                let lam_4 = dnu_lndet - (&res_lam * &lam_xi[3]).fold(0., |acc, x| acc + x);
-                let lam_5 = dnu_lndet - (&res_lam * &lam_xi[4]).fold(0., |acc, x| acc + x);
+                if calc_lam {
+                    let lam_xi = xi_approx(nu as f128);
+                    let lam_1 = dnu_lndet - (&res_lam * &lam_xi[0]).fold(0., |acc, x| acc + x);
+                    let lam_2 = dnu_lndet - (&res_lam * &lam_xi[1]).fold(0., |acc, x| acc + x);
+                    let lam_3 = dnu_lndet - (&res_lam * &lam_xi[2]).fold(0., |acc, x| acc + x);
+                    let lam_4 = dnu_lndet - (&res_lam * &lam_xi[3]).fold(0., |acc, x| acc + x);
+                    let lam_5 = dnu_lndet - (&res_lam * &lam_xi[4]).fold(0., |acc, x| acc + x);
 
-                bbclient::post(
-                    "lam",
-                    &format!("k:{}", k as f64),
-                    [
-                        nu as f64,
-                        lam_1.abs() as f64,
-                        lam_2.abs() as f64,
-                        lam_3.abs() as f64,
-                        lam_4.abs() as f64,
-                        lam_5.abs() as f64,
-                    ]
-                    .into(),
-                )
-                .unwrap();
-            }
+                    bbclient::post(
+                        "lam",
+                        &format!("k:{}", k as f64),
+                        [
+                            nu as f64,
+                            lam_1.abs() as f64,
+                            lam_2.abs() as f64,
+                            lam_3.abs() as f64,
+                            lam_4.abs() as f64,
+                            lam_5.abs() as f64,
+                        ]
+                        .into(),
+                    )
+                    .unwrap();
+                }
 
-            if calc_hke {
-                let z = k;
-                let hke_temp = bnc.hk(nu, &hke, z, rho_ini, step);
-                let hke_1 = dnu_lndet - d_nu * hke_temp[0];
-                let hke_2 = hke_1 - d_nu * hke_temp[1];
-                let hke_3 = hke_2 - d_nu * hke_temp[2];
-                let hke_4 = hke_3 - d_nu * hke_temp[3];
-                let hke_5 = hke_4 - d_nu * hke_temp[4];
+                if calc_hke {
+                    let hke_temp = bnc.hk(nu, &hke, z, rho_ini, step);
+                    let hke_1 = dnu_lndet - d_nu * hke_temp[0];
+                    let hke_2 = hke_1 - d_nu * hke_temp[1];
+                    let hke_3 = hke_2 - d_nu * hke_temp[2];
+                    let hke_4 = hke_3 - d_nu * hke_temp[3];
+                    let hke_5 = hke_4 - d_nu * hke_temp[4];
 
-                bbclient::post(
-                    "hke",
-                    &format!("k:{}, z:{}", k as f64, z as f64),
-                    [
-                        nu as f64,
-                        hke_1.abs() as f64,
-                        hke_2.abs() as f64,
-                        hke_3.abs() as f64,
-                        hke_4.abs() as f64,
-                        hke_5.abs() as f64,
-                    ]
-                    .into(),
-                )
-                .unwrap();
-            }
-        }));
+                    bbclient::post(
+                        "hke",
+                        &format!("k:{}, z:{}", k as f64, z as f64),
+                        [
+                            nu as f64,
+                            hke_1.abs() as f64,
+                            hke_2.abs() as f64,
+                            hke_3.abs() as f64,
+                            hke_4.abs() as f64,
+                            hke_5.abs() as f64,
+                        ]
+                        .into(),
+                    )
+                    .unwrap();
+                }
+            }));
+        }
     }
     for h in handle {
         h.join().unwrap();
