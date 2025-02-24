@@ -13,7 +13,7 @@ impl<T: Potential + Clone> Bounce<T> {
     pub fn hk(
         &mut self,
         nu: usize,
-        i_nu: &dyn Fn(usize, f128) -> [f128; 5],
+        i_nu: &dyn Fn(usize, f128, f128) -> [f128; 5],
         z: f128,
         rho_ini: f128,
         step: f128,
@@ -34,7 +34,7 @@ impl<T: Potential + Clone> Bounce<T> {
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
             let phi = fld[0];
             let dphi = fld[1];
-            let int_nu = i_nu(nu, rho_ode);
+            let int_nu = i_nu(nu, rho_ode, z);
 
             let ddphi = self.v.first_deriv(phi) - (self.dim - 1.) / rho_ode * dphi;
             let d3phi = self.v.second_deriv(phi) * dphi - (self.dim - 1.) / rho_ode * ddphi

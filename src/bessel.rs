@@ -59,8 +59,8 @@ fn low_z_deriv(nu: usize, z: f128, p: usize, n: usize) -> f128 {
 impl BesselIK for f128 {
     fn besselik(&self, nu: usize) -> f128 {
         let z = *self;
-        if nu > 5 && z < 0.3 {
-            low_z(nu, z, 5)
+        if nu > 7 && z < 0.1 {
+            low_z(nu, z, 7)
         } else {
             (math::bessel_in(nu, z as f64) * math::bessel_kn(nu.try_into().unwrap(), z as f64))
                 as f128
@@ -68,8 +68,8 @@ impl BesselIK for f128 {
     }
     fn besselik_deriv(&self, nu: usize, n: usize) -> f128 {
         let z = *self;
-        if nu > 5 && z < 0.3 {
-            low_z_deriv(nu, z, 5, n)
+        if nu > 7 && z < 0.1 {
+            low_z_deriv(nu, z, 7, n)
         } else {
             let mut coefs = HashMap::new();
             coefs.insert((nu, nu), 1f128);

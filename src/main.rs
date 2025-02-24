@@ -66,25 +66,26 @@ fn main() {
     bnc.find_profile(1e-11, 80, rho_ini, step);
     bnc.rho_max = bnc.rho_max * 0.9;
 
-    let lam = |_: usize, rho: f128| [rho, rho.powi(3), rho.powi(5), rho.powi(7), rho.powi(9)];
-    let mhat = k.sqrt();
+    let lam =
+        |_: usize, rho: f128, _: f128| [rho, rho.powi(3), rho.powi(5), rho.powi(7), rho.powi(9)];
 
-    let hke = move |nu: usize, rho: f128| {
+    let hke = |nu: usize, rho: f128, z: f128| {
+        let sqrt_z = z.sqrt();
         [
-            rho * (rho * mhat).besselik(nu),
-            -rho.powi(2) / 2. / mhat * (rho * mhat).besselik_deriv(nu, 1),
-            rho.powi(2) / 4. / mhat.powi(3)
-                * (rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
-                    - (rho * mhat).besselik_deriv(nu, 1)),
-            -rho.powi(2) / 8. / mhat.powi(5)
-                * ((rho * mhat).powi(2) * (rho * mhat).besselik_deriv(nu, 3)
-                    - 3. * rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
-                    + 3. * (rho * mhat).besselik_deriv(nu, 1)),
-            rho.powi(2) / 16. / mhat.powi(7)
-                * ((rho * mhat).powi(3) * (rho * mhat).besselik_deriv(nu, 4)
-                    - 6. * (rho * mhat).powi(2) * (rho * mhat).besselik_deriv(nu, 3)
-                    + 15. * rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
-                    - 15. * (rho * mhat).besselik_deriv(nu, 1)),
+            rho * (rho * sqrt_z).besselik(nu),
+            -rho.powi(2) / 2. / sqrt_z * (rho * sqrt_z).besselik_deriv(nu, 1),
+            rho.powi(2) / 4. / sqrt_z.powi(3)
+                * (rho * sqrt_z * (rho * sqrt_z).besselik_deriv(nu, 2)
+                    - (rho * sqrt_z).besselik_deriv(nu, 1)),
+            -rho.powi(2) / 8. / sqrt_z.powi(5)
+                * ((rho * sqrt_z).powi(2) * (rho * sqrt_z).besselik_deriv(nu, 3)
+                    - 3. * rho * sqrt_z * (rho * sqrt_z).besselik_deriv(nu, 2)
+                    + 3. * (rho * sqrt_z).besselik_deriv(nu, 1)),
+            rho.powi(2) / 16. / sqrt_z.powi(7)
+                * ((rho * sqrt_z).powi(3) * (rho * sqrt_z).besselik_deriv(nu, 4)
+                    - 6. * (rho * sqrt_z).powi(2) * (rho * sqrt_z).besselik_deriv(nu, 3)
+                    + 15. * rho * sqrt_z * (rho * sqrt_z).besselik_deriv(nu, 2)
+                    - 15. * (rho * sqrt_z).besselik_deriv(nu, 1)),
         ]
     };
 
@@ -95,8 +96,8 @@ fn main() {
     // bnc.hk(nu, &hke, mhat.powi(2), rho_ini, step);
     ///////////////
 
-    let calc_fd = false;
-    let calc_lam = false;
+    let calc_fd = true;
+    let calc_lam = true;
     let calc_hke = true;
 
     let xi_approx = |nu: f128| {
@@ -193,7 +194,8 @@ fn main() {
             }
 
             if calc_hke {
-                let hke_temp = bnc.hk(nu, &hke, mhat.powi(2), rho_ini, step);
+                let z = k;
+                let hke_temp = bnc.hk(nu, &hke, z, rho_ini, step);
                 let hke_1 = dnu_lndet - d_nu * hke_temp[0];
                 let hke_2 = hke_1 - d_nu * hke_temp[1];
                 let hke_3 = hke_2 - d_nu * hke_temp[2];
@@ -202,7 +204,7 @@ fn main() {
 
                 bbclient::post(
                     "hke",
-                    &format!("k:{}", k as f64),
+                    &format!("k:{}, z:{}", k as f64, z as f64),
                     [
                         nu as f64,
                         hke_1.abs() as f64,
