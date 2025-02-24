@@ -33,6 +33,7 @@ mod tests {
 pub mod f128tools {
     use ndarray::{Array, Dimension};
     pub trait Mul128 {
+        #[allow(dead_code)]
         fn mul(&self, z: f128) -> Self;
     }
     impl<D: Dimension> Mul128 for Array<f128, D> {
@@ -41,6 +42,7 @@ pub mod f128tools {
         }
     }
     pub trait Add128 {
+        #[allow(dead_code)]
         fn add(&self, z: f128) -> Self;
     }
     impl<D: Dimension> Add128 for Array<f128, D> {

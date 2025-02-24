@@ -66,35 +66,37 @@ fn main() {
     bnc.find_profile(1e-11, 80, rho_ini, step);
     bnc.rho_max = bnc.rho_max * 0.9;
 
-    let lam = |_: f128, rho: f128| [rho, rho.powi(3), rho.powi(5), rho.powi(7), rho.powi(9)];
+    let lam = |_: usize, rho: f128| [rho, rho.powi(3), rho.powi(5), rho.powi(7), rho.powi(9)];
     let mhat = k.sqrt();
+
+    let hke = move |nu: usize, rho: f128| {
+        [
+            rho * (rho * mhat).besselik(nu),
+            -rho.powi(2) / 2. / mhat * (rho * mhat).besselik_deriv(nu, 1),
+            rho.powi(2) / 4. / mhat.powi(3)
+                * (rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
+                    - (rho * mhat).besselik_deriv(nu, 1)),
+            -rho.powi(2) / 8. / mhat.powi(5)
+                * ((rho * mhat).powi(2) * (rho * mhat).besselik_deriv(nu, 3)
+                    - 3. * rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
+                    + 3. * (rho * mhat).besselik_deriv(nu, 1)),
+            rho.powi(2) / 16. / mhat.powi(7)
+                * ((rho * mhat).powi(3) * (rho * mhat).besselik_deriv(nu, 4)
+                    - 6. * (rho * mhat).powi(2) * (rho * mhat).besselik_deriv(nu, 3)
+                    + 15. * rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
+                    - 15. * (rho * mhat).besselik_deriv(nu, 1)),
+        ]
+    };
 
     /////////////// Debug
     // bnc.ratio(20., rho_ini, step);
-    // bnc.hk(0., &lam, 0., rho_ini, step);
+    // bnc.hk(0, &lam, 0., rho_ini, step);
     // let nu = 20;
-    // let hke = |_: f128, rho: f128| {
-    //     [
-    //         rho * (rho * mhat).besselik(nu),
-    //         -rho.powi(2) / 2. / mhat * (rho * mhat).besselik_deriv(nu, 1),
-    //         rho.powi(2) / 4. / mhat.powi(3)
-    //             * (rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
-    //                 - (rho * mhat).besselik_deriv(nu, 1)),
-    //         -rho.powi(2) / 8. / mhat.powi(5)
-    //             * ((rho * mhat).powi(2) * (rho * mhat).besselik_deriv(nu, 3)
-    //                 - 3. * rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
-    //                 + 3. * (rho * mhat).besselik_deriv(nu, 1)),
-    //         rho.powi(2) / 16. / mhat.powi(7)
-    //             * ((rho * mhat).powi(3) * (rho * mhat).besselik_deriv(nu, 4)
-    //                 - 6. * (rho * mhat).powi(2) * (rho * mhat).besselik_deriv(nu, 3)
-    //                 + 15. * rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
-    //                 - 15. * (rho * mhat).besselik_deriv(nu, 1)),
-    //     ]
-    // };
-    // bnc.hk(nu as f128, &hke, mhat.powi(2), rho_ini, step);
+    // bnc.hk(nu, &hke, mhat.powi(2), rho_ini, step);
     ///////////////
 
-    let calc_lam = true;
+    let calc_fd = false;
+    let calc_lam = false;
     let calc_hke = true;
 
     let xi_approx = |nu: f128| {
@@ -128,13 +130,15 @@ fn main() {
     };
 
     let res_lam = if calc_lam {
-        bnc.hk(0., &lam, 0., rho_ini, step)
+        bnc.hk(0, &lam, 0., rho_ini, step)
     } else {
-        [0.; 5]
+        arr1(&[0.; 5])
     };
 
+    let nu_max = 24;
+
     let mut handle = vec![];
-    for nu in 1..25 {
+    for nu in 1usize..nu_max + 1 {
         let mut bnc = bnc.clone();
         let res_lam = res_lam.clone();
         handle.push(thread::spawn(move || {
@@ -142,33 +146,35 @@ fn main() {
 
             let ratio = bnc.ratio(nu as f128, rho_ini, step);
 
-            let lndet = ratio[0].abs().ln();
+            let dnu_lndet = d_nu * ratio[0].abs().ln();
 
-            let fd_1 = d_nu * (lndet - ratio[1]);
-            let fd_2 = fd_1 - d_nu * (ratio[2] - ratio[1].powi(2) / 2.);
-            let fd_3 = fd_2 - d_nu * (ratio[3] - ratio[1] * ratio[2] + ratio[1].powi(3) / 3.);
+            if calc_fd {
+                let fd_1 = dnu_lndet - d_nu * ratio[1];
+                let fd_2 = fd_1 - d_nu * (ratio[2] - ratio[1].powi(2) / 2.);
+                let fd_3 = fd_2 - d_nu * (ratio[3] - ratio[1] * ratio[2] + ratio[1].powi(3) / 3.);
 
-            bbclient::post(
-                "lndet",
-                &format!("k:{}", k as f64),
-                [
-                    nu as f64,
-                    (d_nu * lndet.abs()) as f64,
-                    fd_1.abs() as f64,
-                    fd_2.abs() as f64,
-                    fd_3.abs() as f64,
-                ]
-                .into(),
-            )
-            .unwrap();
+                bbclient::post(
+                    "lndet",
+                    &format!("k:{}", k as f64),
+                    [
+                        nu as f64,
+                        dnu_lndet.abs() as f64,
+                        fd_1.abs() as f64,
+                        fd_2.abs() as f64,
+                        fd_3.abs() as f64,
+                    ]
+                    .into(),
+                )
+                .unwrap();
+            }
 
             if calc_lam {
                 let lam_xi = xi_approx(nu as f128);
-                let lam_1 = d_nu * lndet - (&res_lam * &lam_xi[0]).fold(0., |acc, x| acc + x);
-                let lam_2 = d_nu * lndet - (&res_lam * &lam_xi[1]).fold(0., |acc, x| acc + x);
-                let lam_3 = d_nu * lndet - (&res_lam * &lam_xi[2]).fold(0., |acc, x| acc + x);
-                let lam_4 = d_nu * lndet - (&res_lam * &lam_xi[3]).fold(0., |acc, x| acc + x);
-                let lam_5 = d_nu * lndet - (&res_lam * &lam_xi[4]).fold(0., |acc, x| acc + x);
+                let lam_1 = dnu_lndet - (&res_lam * &lam_xi[0]).fold(0., |acc, x| acc + x);
+                let lam_2 = dnu_lndet - (&res_lam * &lam_xi[1]).fold(0., |acc, x| acc + x);
+                let lam_3 = dnu_lndet - (&res_lam * &lam_xi[2]).fold(0., |acc, x| acc + x);
+                let lam_4 = dnu_lndet - (&res_lam * &lam_xi[3]).fold(0., |acc, x| acc + x);
+                let lam_5 = dnu_lndet - (&res_lam * &lam_xi[4]).fold(0., |acc, x| acc + x);
 
                 bbclient::post(
                     "lam",
@@ -187,26 +193,8 @@ fn main() {
             }
 
             if calc_hke {
-                let hke = |_: f128, rho: f128| {
-                    [
-                        rho * (rho * mhat).besselik(nu),
-                        -rho.powi(2) / 2. / mhat * (rho * mhat).besselik_deriv(nu, 1),
-                        rho.powi(2) / 4. / mhat.powi(3)
-                            * (rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
-                                - (rho * mhat).besselik_deriv(nu, 1)),
-                        -rho.powi(2) / 8. / mhat.powi(5)
-                            * ((rho * mhat).powi(2) * (rho * mhat).besselik_deriv(nu, 3)
-                                - 3. * rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
-                                + 3. * (rho * mhat).besselik_deriv(nu, 1)),
-                        rho.powi(2) / 16. / mhat.powi(7)
-                            * ((rho * mhat).powi(3) * (rho * mhat).besselik_deriv(nu, 4)
-                                - 6. * (rho * mhat).powi(2) * (rho * mhat).besselik_deriv(nu, 3)
-                                + 15. * rho * mhat * (rho * mhat).besselik_deriv(nu, 2)
-                                - 15. * (rho * mhat).besselik_deriv(nu, 1)),
-                    ]
-                };
-                let hke_temp = bnc.hk(nu as f128, &hke, mhat.powi(2), rho_ini, step);
-                let hke_1 = d_nu * (lndet - hke_temp[0]);
+                let hke_temp = bnc.hk(nu, &hke, mhat.powi(2), rho_ini, step);
+                let hke_1 = dnu_lndet - d_nu * hke_temp[0];
                 let hke_2 = hke_1 - d_nu * hke_temp[1];
                 let hke_3 = hke_2 - d_nu * hke_temp[2];
                 let hke_4 = hke_3 - d_nu * hke_temp[3];

@@ -12,8 +12,8 @@ use ndarray::{arr1, Array1};
 impl<T: Potential + Clone> Bounce<T> {
     pub fn hk(
         &mut self,
-        nu: f128,
-        i_nu: &dyn Fn(f128, f128) -> [f128; 5],
+        nu: usize,
+        i_nu: &dyn Fn(usize, f128) -> [f128; 5],
         z: f128,
         rho_ini: f128,
         step: f128,
