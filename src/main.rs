@@ -56,20 +56,21 @@ impl Potential for PhiFour {
 fn main() {
     let _buf = dbgbb::Buffer::on();
 
-    let k = 0.2;
+    // let k = 0.2;
+    // let nu_max = 25;
 
-    let nu_max = 25;
-    // let z_list = [
-    //     0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2,
-    // ]
-    // .map(|x| x * k);
-    // let z_list = [0.01, 0.1, 1.5, 2., 10.].map(|x| x * k);
-    // let z_list = [1., 2., 5., 10.].map(|x| x * k);
-    let z_list = [1.];
+    let k = 0.4;
+    let nu_max = 50;
 
-    let calc_fd = true;
-    let calc_lam = true;
-    let calc_hke = false;
+    let z_list = [
+        0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2,
+    ]
+    .map(|x| x * k);
+    // let z_list = [1.];
+
+    let calc_fd = z_list.len() == 1;
+    let calc_lam = z_list.len() == 1;
+    let calc_hke = z_list.len() > 1;
 
     let rho_ini = 1e-4;
     let step = 3e-4;
@@ -144,9 +145,8 @@ fn main() {
     } else {
         arr1(&[0.; 5])
     };
-
-    let mut handle = vec![];
     for z in z_list {
+        let mut handle = vec![];
         for nu in 1usize..nu_max + 1 {
             let mut bnc = bnc.clone();
             let res_lam = res_lam.clone();
@@ -227,8 +227,8 @@ fn main() {
                 }
             }));
         }
-    }
-    for h in handle {
-        h.join().unwrap();
+        for h in handle {
+            h.join().unwrap();
+        }
     }
 }
