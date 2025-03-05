@@ -7,6 +7,7 @@ use ndarray::{arr1, Array1};
 // use ndarray_stats::QuantileExt;
 // const ABS_TOL: f128 = 1e-5;
 // const REL_TOL: f128 = 1e-5;
+use dbgbb::dbgbb_acc;
 
 impl<T: Potential + Clone> Bounce<T> {
     pub fn ratio(&mut self, nu: f128, rho_ini: f128, step: f128) -> Array1<f128> {
@@ -22,7 +23,13 @@ impl<T: Potential + Clone> Bounce<T> {
                 / 2.
                 / self.dim
                 / (self.dim + 2.);
-        let mut y = arr1(&[phi_a, dphi_a, 1., 0., 1., 0., 0., 0., 0., 0., 0., 0.]);
+        let mut y = if (nu - 2.).abs() < 0.1 {
+            arr1(&[
+                phi_a, dphi_a, 1., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+            ])
+        } else {
+            arr1(&[phi_a, dphi_a, 1., 0., 1., 0., 0., 0., 0., 0., 0., 0.])
+        };
         let dydrho = |rho_ode: f128, fld: &Array1<f128>| {
             let phi = fld[0];
             let dphi = fld[1];
@@ -51,10 +58,35 @@ impl<T: Potential + Clone> Bounce<T> {
             let ddpsi3_nu = -(1. + 2. * nu) / rho_ode * dpsi3_nu
                 + self.v.second_deriv_fv() * psi3_nu
                 + (self.v.second_deriv(phi) - self.v.second_deriv_fv()) * psi2_nu;
-            arr1(&[
-                dphi, ddphi, dpsi_nu, ddpsi_nu, dpsi0_nu, ddpsi0_nu, dpsi1_nu, ddpsi1_nu, dpsi2_nu,
-                ddpsi2_nu, dpsi3_nu, ddpsi3_nu,
-            ])
+
+            if (nu - 2.).abs() < 0.1 {
+                let psi_nu_prime = fld[12];
+                let dpsi_nu_prime = fld[13];
+                let ddpsi_nu_prime = -(1. + 2. * nu) / rho_ode * dpsi_nu_prime
+                    + self.v.second_deriv(phi) * psi_nu_prime
+                    + psi_nu;
+                arr1(&[
+                    dphi,
+                    ddphi,
+                    dpsi_nu,
+                    ddpsi_nu,
+                    dpsi0_nu,
+                    ddpsi0_nu,
+                    dpsi1_nu,
+                    ddpsi1_nu,
+                    dpsi2_nu,
+                    ddpsi2_nu,
+                    dpsi3_nu,
+                    ddpsi3_nu,
+                    dpsi_nu_prime,
+                    ddpsi_nu_prime,
+                ])
+            } else {
+                arr1(&[
+                    dphi, ddphi, dpsi_nu, ddpsi_nu, dpsi0_nu, ddpsi0_nu, dpsi1_nu, ddpsi1_nu,
+                    dpsi2_nu, ddpsi2_nu, dpsi3_nu, ddpsi3_nu,
+                ])
+            }
         };
 
         loop {
@@ -66,11 +98,16 @@ impl<T: Potential + Clone> Bounce<T> {
             if rho > self.rho_max {
                 break;
             }
-
+            // dbgbb_acc!(label=>"bnc",rho as f64,y[0] as f64);
             // let err = *(err.map(|x| x.abs()) / (y.map(|x| x.abs()).mul(REL_TOL).add(ABS_TOL)))
             //     .max()
             //     .unwrap();
         }
-        arr1(&[y[2] / y[4], y[6] / y[4], y[8] / y[4], y[10] / y[4]])
+        // dbgbb_acc!("bnc"=>post);
+        if (nu - 2.).abs() < 0.1 {
+            arr1(&[y[12] / y[4], y[6] / y[4], y[8] / y[4], y[10] / y[4]])
+        } else {
+            arr1(&[y[2] / y[4], y[6] / y[4], y[8] / y[4], y[10] / y[4]])
+        }
     }
 }

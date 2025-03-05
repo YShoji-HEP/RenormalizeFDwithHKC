@@ -57,11 +57,24 @@ fn main() {
     let _buf = dbgbb::Buffer::on();
 
     let k = 0.2;
-    let v = PhiFour::new(k);
+
+    let nu_max = 25;
+    // let z_list = [
+    //     0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2,
+    // ]
+    // .map(|x| x * k);
+    // let z_list = [0.01, 0.1, 1.5, 2., 10.].map(|x| x * k);
+    // let z_list = [1., 2., 5., 10.].map(|x| x * k);
+    let z_list = [1.];
+
+    let calc_fd = true;
+    let calc_lam = true;
+    let calc_hke = false;
 
     let rho_ini = 1e-4;
     let step = 3e-4;
 
+    let v = PhiFour::new(k);
     let mut bnc = Bounce::new(v, 4.);
     bnc.find_profile(1e-11, 80, rho_ini, step);
     bnc.rho_max = bnc.rho_max * 0.9;
@@ -90,15 +103,11 @@ fn main() {
     };
 
     /////////////// Debug
-    // bnc.ratio(20., rho_ini, step);
+    // bnc.ratio(20., rho_ini, step);panic!();
     // bnc.hk(0, &lam, 0., rho_ini, step);
     // let nu = 20;
     // bnc.hk(nu, &hke, mhat.powi(2), rho_ini, step);
     ///////////////
-
-    let calc_fd = false;
-    let calc_lam = false;
-    let calc_hke = true;
 
     let xi_approx = |nu: f128| {
         let d_nu = nu.powi(2);
@@ -135,14 +144,6 @@ fn main() {
     } else {
         arr1(&[0.; 5])
     };
-
-    let nu_max = 24;
-    // let z_list = [
-    //     0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5,
-    // ];
-    let z_list = [
-        0.01, 0.1, 1.5, 2., 10.
-    ];
 
     let mut handle = vec![];
     for z in z_list {
