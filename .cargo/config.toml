@@ -1,2 +1,2 @@
 [env]
-BB_ADDR = "bulletin-board:7578"
+BB_ADDR = "bulletin-board.k8s.internal:7578"

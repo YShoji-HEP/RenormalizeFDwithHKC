@@ -4,6 +4,7 @@ mod bounce;
 mod determinant;
 mod heatkernel;
 mod potential;
+mod radial_wkb;
 mod tools;
 
 use bessel::BesselIK;
@@ -56,21 +57,26 @@ impl Potential for PhiFour {
 fn main() {
     let _buf = dbgbb::Buffer::on();
 
-    // let k = 0.2;
-    // let nu_max = 25;
+    let k = 0.2;
+    let nu_max = 25;
 
-    let k = 0.4;
-    let nu_max = 50;
+    // let k = 0.4;
+    // let nu_max = 50;
 
-    let z_list = [
-        0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2,
-    ]
-    .map(|x| x * k);
-    // let z_list = [1.];
+    // let z_list = [
+    //     0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2,
+    // ]
+    // .map(|x| x * k);
+    let z_list = [1.];
 
-    let calc_fd = z_list.len() == 1;
-    let calc_lam = z_list.len() == 1;
-    let calc_hke = z_list.len() > 1;
+    // let calc_fd = z_list.len() == 1;
+    // let calc_lam = z_list.len() == 1;
+    // let calc_hke = z_list.len() > 1;
+
+    let calc_fd = false;
+    let calc_lam = false;
+    let calc_hke = false;
+    let calc_rwkb = true;
 
     let rho_ini = 1e-4;
     let step = 3e-4;
@@ -172,6 +178,34 @@ fn main() {
                             fd_1.abs() as f64,
                             fd_2.abs() as f64,
                             fd_3.abs() as f64,
+                        ]
+                        .into(),
+                    )
+                    .unwrap();
+                }
+
+                if calc_rwkb {
+                    let rwkb = bnc.rwkb(nu, rho_ini, step);
+                    let rwkb_2 = dnu_lndet + rwkb[0];
+                    let rwkb_1 = rwkb_2 + rwkb[1];
+                    let rwkb_0 = rwkb_1 + rwkb[2] + rwkb[3];
+                    let rwkb_m1 = rwkb_0 + rwkb[4];
+                    let rwkb_m2 = rwkb_m1 + rwkb[5];
+                    let rwkb_m3 = rwkb_m2 + rwkb[6];
+                    let rwkb_m4 = rwkb_m3 + rwkb[7];
+
+                    bbclient::post(
+                        "rwkb",
+                        &format!("k:{}, z:{}", k as f64, z as f64),
+                        [
+                            nu as f64,
+                            rwkb_2.abs() as f64,
+                            rwkb_1.abs() as f64,
+                            rwkb_0.abs() as f64,
+                            rwkb_m1.abs() as f64,
+                            rwkb_m2.abs() as f64,
+                            rwkb_m3.abs() as f64,
+                            rwkb_m4.abs() as f64,
                         ]
                         .into(),
                     )
