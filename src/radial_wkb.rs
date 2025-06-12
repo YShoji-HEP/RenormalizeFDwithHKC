@@ -64,7 +64,7 @@ impl<T: Potential + Clone> Bounce<T> {
                 + 15. * self.v.forth_deriv(phi) * d4phi * ddphi
                 + 10. * self.v.forth_deriv(phi) * d3phi.powi(2);
 
-            let u = |lmax: f128| (1.0 + m2_hat * rho_ode * rho_ode / (lmax * lmax)).sqrt();
+            let u = |lmax: f128| (1.0 + m2_hat * rho_ode.powi(2) / lmax.powi(2)).sqrt();
 
             let mu = 1.;
 
@@ -343,8 +343,8 @@ impl<T: Potential + Clone> Bounce<T> {
             arr1(&[
                 dphi,
                 ddphi,
-                q_2(nu - 1.) * (nu - 1.).powi(2) - q_2(nu - 2.) * (nu - 2.).powi(2),
-                q_1(nu - 1.) * (nu - 1.) - q_1(nu - 2.) * (nu - 2.),
+                q_2(nu - 1.) * (nu - 1.).max(1.).powi(2) - q_2(nu - 2.) * (nu - 2.).max(1.).powi(2),
+                q_1(nu - 1.) * (nu - 1.).max(1.) - q_1(nu - 2.) * (nu - 2.).max(1.),
                 q_log(nu - 1.) - q_log(nu - 2.),
                 q_0(nu - 1.) - q_0(nu - 2.),
                 q_m1(nu - 1.) * (nu - 1.).max(1.).powi(-1)
@@ -368,6 +368,6 @@ impl<T: Potential + Clone> Bounce<T> {
                 break;
             }
         }
-        arr1(&[y[2], y[3], y[4], y[5], y[6], y[6], y[7], y[8], y[9]])
+        arr1(&[y[2], y[3], y[4], y[5], y[6], y[7], y[8], y[9]])
     }
 }
