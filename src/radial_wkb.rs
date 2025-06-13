@@ -168,7 +168,7 @@ impl<T: Potential + Clone> Bounce<T> {
                 let term = -720.0 * rho_ode.powi(5) * u(lmax).powi(8) * (m2 - m2_hat).powi(3)
                     + 360.0 * rho_ode.powi(5) * u(lmax).powi(8) * dm2.powi(2)
                     - 72.0 * rho_ode.powi(5) * u(lmax).powi(8) * d4m2
-                    - 720.0 * rho_ode.powi(4) * u(lmax).powi(6) * (m2 - m2_hat) * d3m2
+                    - 720.0 * rho_ode.powi(4) * u(lmax).powi(6) * d3m2
                     + 60.0
                         * rho_ode.powi(3)
                         * (16.0 * u(lmax).powi(6) - 111.0 * u(lmax).powi(4)
@@ -210,7 +210,7 @@ impl<T: Potential + Clone> Bounce<T> {
                 let term1 = rho_ode.powi(7)
                     * (2.0 * u(lmax).powi(5) - 5.0 * u(lmax).powi(2) + 3.0)
                     * u(lmax).powi(12)
-                    * (-1680.0 * (m2 - m2_hat).powi(4) + 3360.0 * dm2.powi(2)
+                    * (-1680.0 * (m2 - m2_hat).powi(4) + 3360.0 * (m2 - m2_hat) * dm2.powi(2)
                         - 1008.0 * ddm2.powi(2)
                         + 3360.0 * (m2 - m2_hat).powi(2) * ddm2
                         - 1344.0 * dm2 * d3m2

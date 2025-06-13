@@ -72,8 +72,9 @@ fn main() {
     // let calc_fd = z_list.len() == 1;
     // let calc_lam = z_list.len() == 1;
     // let calc_hke = z_list.len() > 1;
+    // let calc_rwkb = false;
 
-    let calc_fd = false;
+    let calc_fd = true;
     let calc_lam = false;
     let calc_hke = false;
     let calc_rwkb = true;
@@ -196,7 +197,7 @@ fn main() {
 
                     bbclient::post(
                         "rwkb",
-                        &format!("k:{}, z:{}", k as f64, z as f64),
+                        &format!("k:{}", k as f64),
                         [
                             nu as f64,
                             rwkb_2.abs() as f64,
