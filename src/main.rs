@@ -74,10 +74,11 @@ fn main() {
     // let calc_hke = z_list.len() > 1;
     // let calc_rwkb = false;
 
-    let calc_fd = true;
+    let calc_fd = false;
     let calc_lam = false;
     let calc_hke = false;
-    let calc_rwkb = true;
+    let calc_rwkb = false;
+    let calc_hke_z0 = true;
 
     let rho_ini = 1e-4;
     let step = 3e-4;
@@ -89,6 +90,16 @@ fn main() {
 
     let lam =
         |_: usize, rho: f128, _: f128| [rho, rho.powi(3), rho.powi(5), rho.powi(7), rho.powi(9)];
+
+    let hke_lnr = |_: usize, rho: f128, _: f128| {
+        [
+            rho * rho.ln(),
+            rho.powi(3) * rho.ln(),
+            rho.powi(5) * rho.ln(),
+            rho.powi(7) * rho.ln(),
+            rho.powi(9) * rho.ln(),
+        ]
+    };
 
     let hke = |nu: usize, rho: f128, z: f128| {
         let sqrt_z = z.sqrt();
@@ -147,16 +158,53 @@ fn main() {
         ]
     };
 
-    let res_lam = if calc_lam {
+    let xi_exact = |nu: f128| {
+        let d_nu = nu.powi(2);
+        [
+            d_nu * 1. / 2. / nu,
+            d_nu * 1. / 4. / (nu + 1.) / nu / (nu - 1.),
+            d_nu * 3. / 8. / (nu + 2.) / (nu + 1.) / nu / (nu - 1.) / (nu - 2.),
+            d_nu * 15.
+                / 16.
+                / (nu + 3.)
+                / (nu + 2.)
+                / (nu + 1.)
+                / nu
+                / (nu - 1.)
+                / (nu - 2.)
+                / (nu - 3.),
+            d_nu * 105.
+                / 32.
+                / (nu + 4.)
+                / (nu + 3.)
+                / (nu + 2.)
+                / (nu + 1.)
+                / nu
+                / (nu - 1.)
+                / (nu - 2.)
+                / (nu - 3.)
+                / (nu - 4.),
+        ]
+    };
+
+    let res_lam = if calc_lam || calc_hke_z0 {
         bnc.hk(0, &lam, 0., rho_ini, step)
     } else {
         arr1(&[0.; 5])
     };
+
+    let res_hke_lnr = if calc_hke_z0 {
+        bnc.hk(0, &hke_lnr, 0., rho_ini, step)
+    } else {
+        arr1(&[0.; 5])
+    };
+
     for z in z_list {
         let mut handle = vec![];
         for nu in 1usize..nu_max + 1 {
             let mut bnc = bnc.clone();
             let res_lam = res_lam.clone();
+            let res_hke_lnr = res_hke_lnr.clone();
             handle.push(thread::spawn(move || {
                 let d_nu = nu.pow(2) as f128;
 
@@ -231,6 +279,58 @@ fn main() {
                             lam_3.abs() as f64,
                             lam_4.abs() as f64,
                             lam_5.abs() as f64,
+                        ]
+                        .into(),
+                    )
+                    .unwrap();
+                }
+
+                if calc_hke_z0 {
+                    let hke_xi = xi_exact(nu as f128);
+                    let hke_z0_1 = dnu_lndet - res_lam[0] * hke_xi[0];
+                    let hke_z0_2 = if nu == 1 {
+                        hke_z0_1 - d_nu * (res_lam[1] * (-0.0335171) - res_hke_lnr[1] / 4.)
+                    } else {
+                        hke_z0_1 - res_lam[1] * hke_xi[1]
+                    };
+                    let hke_z0_3 = if nu == 1 {
+                        hke_z0_2 - d_nu * (res_lam[2] * (-0.0249081) + res_hke_lnr[2] / 8.)
+                    } else if nu == 2 {
+                        hke_z0_2 - d_nu * (res_lam[2] * (-0.00549172) - res_hke_lnr[2] / 32.)
+                    } else {
+                        hke_z0_2 - res_lam[2] * hke_xi[2]
+                    };
+                    let hke_z0_4 = if nu == 1 {
+                        hke_z0_3 - d_nu * (res_lam[3] * (0.0146197) - res_hke_lnr[3] * 5. / 128.)
+                    } else if nu == 2 {
+                        hke_z0_3 - d_nu * (res_lam[3] * (-0.00350414) + res_hke_lnr[3] / 64.)
+                    } else if nu == 3 {
+                        hke_z0_3 - d_nu * (res_lam[3] * (-0.000501046) - res_hke_lnr[3] / 384.)
+                    } else {
+                        hke_z0_3 - res_lam[3] * hke_xi[3]
+                    };
+                    let hke_z0_5 = if nu == 1 {
+                        hke_z0_4 - d_nu * (res_lam[4] * (-0.00453974) + res_hke_lnr[4] * 7. / 768.)
+                    } else if nu == 2 {
+                        hke_z0_4 - d_nu * (res_lam[4] * (0.0018901) - res_hke_lnr[4] * 7. / 1536.)
+                    } else if nu == 3 {
+                        hke_z0_4 - d_nu * (res_lam[4] * (-0.000307513) + res_hke_lnr[4] / 768.)
+                    } else if nu == 4 {
+                        hke_z0_4 - d_nu * (res_lam[4] * (-0.0000327686) - res_hke_lnr[4] / 6144.)
+                    } else {
+                        hke_z0_4 - res_lam[4] * hke_xi[4]
+                    };
+
+                    bbclient::post(
+                        "hke",
+                        &format!("k:{}, z:0", k as f64),
+                        [
+                            nu as f64,
+                            hke_z0_1.abs() as f64,
+                            hke_z0_2.abs() as f64,
+                            hke_z0_3.abs() as f64,
+                            hke_z0_4.abs() as f64,
+                            hke_z0_5.abs() as f64,
                         ]
                         .into(),
                     )
